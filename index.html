@@ -6,6 +6,17 @@
 <title>Petrus Method</title>
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script>
+// The first cubes on the page get WebGL canvases, and a WebGL canvas reads back blank
+// unless it keeps its last frame, so the print snapshots of those cubes came out empty.
+(function () {
+  var getContext = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (type, options) {
+    if (/webgl/.test(type)) options = Object.assign({ preserveDrawingBuffer: true }, options || {});
+    return getContext.call(this, type, options);
+  };
+})();
+</script>
 <script src="https://cdn.rawgit.com/larspetrus/Roofpig/master/roofpig_and_three.min.js"></script>
 
 <style>
@@ -109,6 +120,30 @@ table.rules-table tr:nth-child(even) td { background: #f4f2ee; }
 hr { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
 footer { color: var(--muted); font-size: 0.8rem; text-align: center; padding-top: 24px; border-top: 1px solid var(--border); }
 
+/* Final layer case pages — after lar5.com/cube/cube.css */
+.ixcell { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 6px 8px 8px; width: 150px; }
+.ixcell.perfa { background: #fff3d6; border-color: #f0c040; }
+.cpp { overflow: hidden; margin-bottom: 4px; }
+.cpp div { font-size: 1.5rem; float: left; line-height: 30px; color: var(--dark); }
+.cpp img { width: 30px; height: 30px; }
+.cpp span { float: right; clear: right; font-size: 0.65rem; color: var(--muted); line-height: 1.3; }
+.ix-group { float: right; margin: -40px 0 0 12px; }
+.ix-look { width: 64px; height: 64px; }
+.ix-look-sm { width: 40px; height: 40px; display: block; margin: 0 auto 4px; }
+.ix-intro { clear: right; }
+.ix-nav { font-family: 'Courier New', monospace; font-size: 0.85rem; }
+ul.ix-groups { list-style: none; padding-left: 0; }
+ul.ix-groups li { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+ul.ix-groups img { width: 40px; height: 40px; }
+figure.photo { margin: 16px 0; }
+figure.photo figcaption { font-size: 0.8rem; color: var(--muted); font-style: italic; margin-top: 4px; }
+figure.photo-right { float: right; margin: 0 0 12px 18px; max-width: 190px; }
+
+details.hint { background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius); padding: 8px 14px; margin: 0 0 13px; font-size: 0.9rem; }
+details.hint summary { cursor: pointer; color: var(--muted); }
+
+.merged { color: #2563b0; }
+
 /* ═══ PRINT ═══════════════════════════════════════════════════ */
 @media print {
   body { background: white; font-size: 11pt; line-height: 1.55; }
@@ -162,6 +197,8 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
   <div class="toc-title">Contents</div>
   <ol>
     <li><a href="#intro">Introduction &amp; The Basic Idea</a></li>
+    <li><a href="#basics">Basic Cube Facts</a></li>
+    <li><a href="#terms">Terminology</a></li>
     <li><a href="#step1">Step 1 — Build the 2×2×2</a></li>
     <li><a href="#step2">Step 2 — Expand to 2×2×3</a></li>
     <li><a href="#step3">Step 3 — Twist the Edges</a>
@@ -180,9 +217,19 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
     <li><a href="#step6">Step 6 — Twist the Corners</a></li>
     <li><a href="#step7">Step 7 — Position the Edges</a></li>
     <li><a href="#blox">Block Building Patterns</a></li>
-    <li><a href="#ymain">Step 5+6 Index</a></li>
-    <li><a href="#xmain">Step 6+7 Index</a></li>
+    <li><a href="#ymain">Step 5+6 Index</a>
+      <ul class="sub">
+        <li>Groups <a href="#yA">A</a> <a href="#yB">B</a> <a href="#yC">C</a> <a href="#yD">D</a> <a href="#yE">E</a> <a href="#yF">F</a> <a href="#yG">G</a></li>
+      </ul>
+    </li>
+    <li><a href="#xmain">Step 6+7 Index</a>
+      <ul class="sub">
+        <li>Groups <a href="#xA">A</a> <a href="#xB">B</a> <a href="#xC">C</a> <a href="#xD">D</a> <a href="#xE">E</a> <a href="#xF">F</a> <a href="#xG">G</a></li>
+      </ul>
+    </li>
     <li><a href="#examples">13 Annotated Solutions</a></li>
+    <li><a href="#physical">The Physical Side</a></li>
+    <li><a href="#mental">The Mental Side</a></li>
     <li><a href="#quickref">Algorithm Quick Reference</a></li>
   </ol>
 </nav>
@@ -192,8 +239,10 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 <section class="page-section" id="intro">
 <h2 class="section-title">Introduction &amp; The Basic Idea</h2>
 
-<p>This is a tutorial for my method of solving Rubik's Cube. It is intended both for beginners and experienced cubers. There is no group theory or written notation involved, I just show you how to move.</p>
-<p>Using this method, I won the 1981 Swedish championships, and finished 4th in the first world championships in Budapest 1982. I also won a minor world championship in 2005.</p>
+<p>This is a tutorial for my method of solving Rubik's Cube. It is intended both for beginners and experienced cubers. There is no group theory or written notation involved, I just show you how to move. You <strong>need</strong> a modern canvas tag capable browser, ideally with WebGL enabled.</p>
+<p>Using this method, I won the 1981 Swedish championships, and finished 4th in the <a href="http://www.ws.binghamton.edu/fridrich/cubewrld.html" target="_blank">first world championships in Budapest 1982</a>. I also won a minor world championship in 2005. As <a href="https://www.worldcubeassociation.org/results/p.php?i=1982PETR01" target="_blank">my official results</a> show, I am a has-been these days.</p>
+<p>Please take a look at my <a href="#terms">terminology</a>, so you know the difference between a turn and a twist, for example.</p>
+<p>If you are a total beginner, look at this description of the <a href="#basics">basic Rubik's Cube concepts</a>.</p>
 
 <h3>The Basic Idea</h3>
 <p>Most people solve the cube layer by layer. This is a simple way for the human mind to approach the problem, but it is useless for speed cubing. No matter how good you are, you will use more than 100 moves. Going for speed, I use 55–60 moves on average. Going for few moves, I average 40–45.</p>
@@ -213,7 +262,7 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
   <li>Turn 12–16 is Step 3</li>
   <li>Turn 17–29 is Step 4</li>
   <li>Step 5 was not needed</li>
-  <li>Turn 30–41 is Steps 6–7</li>
+  <li>Turn 30–41 is Steps 6–7 (<a href="#xF">F4</a>)</li>
 </ul>
 
 <h3>The 7 Steps</h3>
@@ -226,6 +275,67 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
   <li>Step 6 — Twist the corners</li>
   <li>Step 7 — Position the edges</li>
 </ol>
+<p>Steps 1, 2 &amp; 4 also have <a href="#blox">block building tricks</a>, and there are <a href="#examples">13 example solutions</a> to practise on. I also have some tips on the <a href="#physical">physical</a> and <a href="#mental">mental</a> aspects of speed cubing.</p>
+<h3>Last Layer Algorithm DB</h3>
+<p>I made a web app database of <strong>all</strong> 43 million 17 move or less last layer algorithms. It's called <a href="http://birdflu.lar5.com/" target="_blank">Birdflu</a>.</p>
+<p class="note">There is also a <a href="http://www.frederikmeysel.de/larspetrus" target="_blank">German translation</a> of the tutorial by Frederik Meysel, from 2005. The site keeps a <a href="http://petrusupdates.blogspot.com/" target="_blank">change log blog</a>.</p>
+</section>
+
+
+<!-- ══ BASICS ════════════════════════════════════════════════════ -->
+<section class="page-section" id="basics">
+<h2 class="section-title">Basic Cube Facts for True Beginners</h2>
+
+<p>You need to understand what the parts of the cube are. It is <strong>not</strong> 54 stickers. And it is <strong>not</strong> 27 little cubes. It <strong>is</strong> 12 edge and 8 corner pieces moving inside a frame of the 6 unmovable centre pieces. Each edge has two stickers, and each corner has three stickers. Here's how the pieces look separated.</p>
+
+<figure class="photo">
+  <img src="https://lar5.com/cube/kubdelar.jpg" style="width:504px;max-width:100%;" alt="A dismantled cube: 12 edges, the frame with 6 centres, and 8 corners">
+  <figcaption>Parts of a cube. Left: <strong>12 edges</strong>. Middle: <strong>1 frame with 6 centres</strong>. Right: <strong>8 corners</strong></figcaption>
+</figure>
+
+<figure class="photo photo-right">
+  <img src="https://lar5.com/cube/bryt.jpg" style="width:175px;" alt="Prying an edge loose to dismantle a cube">
+  <figcaption>Dismantling a cube. If this doesn't work, try twisting the edge.</figcaption>
+</figure>
+<p>You can take apart your cube yourself and see how it works. Prying loose an edge like in the photo to the right works on most cubes. The first time you may have to use a bit of force, even using a knife for leverage.</p>
+<p><strong>But</strong> some modern speed cubes have a different mechanism. For those you <strong>twist</strong> the edge 90° instead.</p>
+<div style="clear:both"></div>
+
+<div class="cube-row">
+  <div class="cube-widget">
+    <div class="roofpig rp140" data-config="colored=U* | colors=U:w D:y | setupmoves=F' L F' R2 F L' F' R2 F2"></div>
+    <div class="cube-label">Don't do this!!</div>
+  </div>
+</div>
+<p>The common error by people who don't know how the cube is built is to try to move individual stickers, instead of pieces. They think that they have accomplished something when they "complete one side" as above. This is a quite useless position, since almost none of the <strong>pieces</strong> are in the right position. That they happen to have a white sticker by the white centre is just a pretty accident, and does not mean you're anywhere near a solution.</p>
+<p>This misunderstanding is probably the main reason people find the cube so very hard. Make sure you understand this!</p>
+<p>You also have to realise that the centre pieces do not move. No matter how much you turn, they always remain in place. This is obvious when you look at the centre piece of a dismantled cube.</p>
+<div class="warn"><strong>Note that</strong> when you put the cube together again, you want to do it in the solved state. If not, you have a 93% (11/12) chance of getting it in an unsolvable position. And it's no fun trying to learn on an unsolvable cube…</div>
+</section>
+
+
+<!-- ══ TERMINOLOGY ═══════════════════════════════════════════════ -->
+<section class="page-section" id="terms">
+<h2 class="section-title">Terminology and Conventions</h2>
+
+<p>As far as I know, there is no universally accepted terminology for cubing, and even if there is, few people know it. So confusion is common and rampant. For this tutorial we will use the following exact conventions.</p>
+
+<table class="rules-table">
+  <tr><th>Term</th><th>Meaning</th></tr>
+  <tr><td><strong>Corner</strong></td><td>A physical plastic corner piece. Has 3 stickers.</td></tr>
+  <tr><td><strong>Edge</strong></td><td>A physical plastic edge piece. Has 2 stickers.</td></tr>
+  <tr><td><strong>Piece</strong></td><td>A corner or an edge.</td></tr>
+  <tr><td><strong>Sticker</strong></td><td>A coloured sticker. Those that are nine on each side. You know what I mean. I used to call them "facelet" on the site 1996–2006. I can't explain why.</td></tr>
+  <tr><td><strong>Side</strong></td><td>One of the 6 sides of the cube.</td></tr>
+  <tr><td><strong>Layer</strong></td><td>The cube consists of three layers (top/middle/bottom). This is a 3-dimensional concept, as opposed to "side" which is 2-dimensional. The "green layer" is the one with the green centre, regardless of how many green stickers are on it otherwise.</td></tr>
+  <tr><td><strong>Twist, twisted</strong></td><td>How a piece is oriented. A corner can be twisted in 3 different ways, an edge in 2.</td></tr>
+  <tr><td><strong>Turn, turning</strong></td><td>The physical act of rotating a side.</td></tr>
+  <tr><td><strong>Position (noun)</strong></td><td>A place in the cube, relative to the centres. The red-white position is the edge position between the red and white centres. Positions don't move, pieces move by occupying different positions. For example the red-white edge can be in any of the 12 edge positions, and it can be in the correct (red-white) position but wrongly twisted.</td></tr>
+  <tr><td><strong>Position (verb)</strong></td><td>To put a piece in its correct position.</td></tr>
+  <tr><td><strong>Cube position</strong></td><td>An, uh…, position of the whole cube. Its entire state.</td></tr>
+  <tr><td><strong>Move sequence</strong></td><td>A useful sequence of turns.</td></tr>
+</table>
+<p>I have given names to those move sequences (Niklas, Sune and Allan) that you need to learn by heart. It becomes impossible to talk about them otherwise. There is no particular logic to the names, I just picked them for fun. I believe that is my privilege as inventor of the method.</p>
 </section>
 
 
@@ -236,11 +346,13 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 <p>The goal in this step is to build a 2×2×2 block. Or more precisely, to place one corner and its three neighbouring edges in their correct positions, solving 4 out of the 20 cube pieces.</p>
 
 <h4>Beginner</h4>
-<p>For the beginner it is often easiest to pick a corner that you will always start with. We will use the blue-yellow-orange corner. This means that the three edges are the blue-orange, the orange-yellow, and the blue-yellow.</p>
+<p>For the beginner it is often easiest to pick a corner that you will always start with. This makes it easy to find the pieces you need. We will use the blue-yellow-orange corner. This means that the three edges are the blue-orange, the orange-yellow, and the blue-yellow.</p>
 
-<div class="ruta"><strong>What if there IS NO blue-yellow-orange corner?</strong> That's normal. There are many different colour schemes on cubes in the world. The method works for any set of colours, so try to focus on the method, not the particular colours used as examples.</div>
+<div class="ruta"><strong>What if there IS NO blue-yellow-orange corner??</strong> That's normal. There are many different colour schemes on cubes in the world, so unfortunately, whatever colour arrangement I pick for this site, it will not match most cubes. The method works for any set of colours, obviously, so try to focus on the method, not the particular colours used as examples.</div>
 
-<p>There are many special cases, but this is the basic way I solve it:</p>
+<p>First find the 4 pieces you need, and then try to build the 2×2×2. It's not really hard, but it can take a while if you're a rookie. It's best to try yourself for a while, to get a feel for it, but if it still doesn't work out, look at the description below.</p>
+
+<p>There are many special cases, but this is the basic way I solve it. Remember, we're trying to join up 1 corner, 3 edges and 3 centres.</p>
 <ol>
   <li>Pair up the corner with an edge.</li>
   <li>Pair up another edge with a centre.</li>
@@ -255,9 +367,25 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
     <div class="cube-alg">D' B' F2 L' F' U' R U2</div>
     <div class="cube-label">Beginner example</div>
   </div>
+  <div>
+    <p>This animation shows a concrete example:</p>
+    <ol>
+      <li>Pair corner with blue-orange edge. <em>[Turn 1]</em></li>
+      <li>Pair up orange-yellow edge with orange centre. <em>[Turn 2]</em></li>
+      <li>Join. <em>[Turn 3–4]</em></li>
+      <li>Blue-yellow edge fitted between blue and yellow centre. <em>[Turn 5–7]</em></li>
+      <li>All done! <em>[Turn 8]</em></li>
+    </ol>
+  </div>
 </div>
 
+<h4>Intermediate</h4>
+<p>After you can easily do one corner, you should start looking at all 8 corners and choosing to start with the one that is fastest to solve. Normally, one or two are real easy (and some are hard). Picking the easy one makes quite a difference. It can be a difficult transition to use different colours all the time, but it is worth it. After a while you'll be completely used to it.</p>
+<p>At competitions, there is normally a 15 second period where you get to look at the cube before timing starts. This is what you do during that time (though 2–5 seconds are usually enough).</p>
+
 <h4>Advanced</h4>
+<p>Try to be aware of where the four pieces are at all times. You should be able to visualise the full step solution in your mind before starting.</p>
+<p>Spend a lot of time looking at this step, and you will start seeing 5 moves ahead or more surprisingly often.</p>
 <p>Here are my solutions for 4 random cube positions. When you can choose between 8 corners you should get 1–2 fewer moves on average.</p>
 <div class="cube-row">
   <div class="cube-widget">
@@ -286,10 +414,13 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 <section class="page-section" id="step2">
 <h2 class="section-title"><span class="step-badge">STEP 2</span> Expand to 2×2×3</h2>
 
+<p>After step 1, we have a solved part of the cube, and we have three sides that we can move freely, without breaking what we have accomplished. Not bad!</p>
 <p>In step 2 we expand what we have to a 2×2×3 block. That is, we add one corner and two edges to the solved block, going from 4 to 7 solved pieces of 20.</p>
 
 <h4>Beginner</h4>
-<p>Choose one of the three possible corners to expand to. This is quite similar to how you work in step 1. But be sure not to break up the 2×2×2 block! You need to be aware where it is at all times.</p>
+<p>Choose one of the three possible corners to expand to. We will use the green-yellow-orange corner, and of course the yellow-green and green-orange edges.</p>
+<p>This is quite similar to how you work in step 1, join the corner with one of the edges and work from there. When you're familiar with step 1 you should have no problem.</p>
+<p>But be sure not to break up the 2×2×2 block! You need to be aware where it is at all times. Otherwise it's back to step 1…</p>
 
 <div class="cube-row">
   <div class="cube-widget">
@@ -306,6 +437,10 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
   </div>
 </div>
 
+<h4>Intermediate</h4>
+<p>You have three corners to choose from. It's important to pick the easiest, just like in step 1.</p>
+<p>The hardest positions are when a piece is in its right position, but twisted the wrong way. The easiest way to deal with that is to just pick another corner to solve!</p>
+
 <h4>Advanced</h4>
 <div class="cube-row">
   <div class="cube-widget">
@@ -314,7 +449,9 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
     <div class="cube-label">Breaks the 2×2×2 block — advanced technique</div>
   </div>
 </div>
-<p>Sometimes, the first move of step 3 will be the opposite of the last move in this phase, so with some foresight you can skip both. Also, while doing the last turn of step 2, you can often stop halfway and fix a pair of bad edges midway.</p>
+<p>These simple and very useful moves took me months to figure out (actually I didn't, someone I taught showed me…), since it involves breaking the holy 2×2×2 block. As an exercise, try to find how to do the third example cube above in 7 moves instead of 9 by breaking the 2×2×2.</p>
+<details class="hint"><summary>It's not easy, so here is a hint (click to reveal)</summary><strong>First move:</strong> turn green layer ¼ clockwise. <strong>Second move</strong> breaks the 2×2×2.</details>
+<p>Sometimes, the first move of step 3 will be the opposite of the last move in this phase. So with some foresight you can skip both. Also, while doing the last turn of step 2, you can often stop halfway, and fix a pair of bad edges midway. See the <a href="#examples">examples</a> for several examples of this.</p>
 <p>For more advanced techniques, check out the <a href="#blox">block building section</a>.</p>
 </section>
 
@@ -323,11 +460,14 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 <section class="page-section" id="step3">
 <h2 class="section-title"><span class="step-badge">STEP 3</span> Twist the Edges</h2>
 
-<p>The basic idea of the method is to solve the entire cube from here by just turning the 2 free sides. But if you try to do that, you soon discover that some edges are always twisted the wrong way. We call those the "bad" edges. Step 3 fixes that.</p>
+<p>The basic idea of the method is to solve the entire cube from here by just turning the 2 free sides. But if you try to do that, you soon discover that some edges are always twisted the wrong way. We call those the "bad" edges. We need to fix that before we move on. Step 3 is this fix.</p>
+<p>Step 3 can seem incomprehensible before you "get" it, but it is really the simplest step in the method.</p>
 
 <h4>Beginner</h4>
-<p><strong>1. Identify the bad edges.</strong> There are 7 edges not part of the 2×2×3. Pick any one of them, place it between its two centre pieces using only the 2 free layers. If it's twisted right, it's good. Otherwise it's bad. Make a note of it, and check the next edge. When checking later edges, do <strong>not</strong> try to keep the previous edges in place — once you know if an edge is good or bad, you know.</p>
-<p><strong>2. Turn bad edges into good edges.</strong> There are always an even number of bad edges. You can make them good in pairs using the 3-move sequence below.</p>
+<p><em>If you don't like the beginner instructions, take a look at the intermediate ones. You may like that approach more.</em></p>
+<p>Basically, we need to do 2 things in step 3.</p>
+<p><strong>1. Identify the bad edges.</strong> There are 7 edges not part of the 2×2×3. Pick any one of them, say the red/blue one. Using only the 2 free layers (that is, not breaking up the 2×2×3), place it between the red and blue centre pieces. If it's twisted right, it's good. Otherwise it's bad. That's all. Make a (mental or on paper) note of it, and check the next edge. When checking the second and later edges, <strong>do not</strong> try to keep the previous edges in place. It is not only extremely difficult, but also completely unnecessary. Once you know if an edge is good or bad, you know.</p>
+<p><strong>2. Turn bad edges into good edges.</strong> There are always an even number of bad edges. You can make them good in pairs. The simplest way is the 3 move sequence shown below. Just place two bad edges in the positions of the coloured edges, and do it. Check that your edges actually became good the first times, to be sure you're doing it right.</p>
 
 <div class="cube-row">
   <div class="cube-widget">
@@ -336,9 +476,13 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
     <div class="cube-label">Basic edge fix</div>
   </div>
 </div>
+<p>Continue until you're sure all edges are good.</p>
 
 <h4>Intermediate — the 4 rules</h4>
-<p>Call the colours of the two remaining centres A and B (red and white in the illustrations). Ignore everything except the stickers on the unsolved edges with colour A or B:</p>
+<p>Since we only want to know if an edge <strong>would</strong> be correctly twisted if it was placed in its correct location, we don't have to waste moves actually moving it there.</p>
+<p>It is easy to see which edges are bad without moving them. Let's call the colours of the two remaining centres A and B (red and white in the illustrations). Ignore everything except the stickers on the (unsolved) edges with colour A or B. There are the four simple rules to remember:</p>
+
+<figure class="photo"><img src="https://lar5.com/cube/goodbad.png" style="width:288px;max-width:100%;" alt="Good and bad edges on a cube"></figure>
 
 <table class="rules-table">
 <tr><th>Rule</th><th>Condition</th><th>Status</th></tr>
@@ -347,6 +491,18 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 <tr><td>3</td><td>An edge with a B colour sticker <em>next to</em> the A colour centre</td><td class="bad">BAD</td></tr>
 <tr><td>4</td><td>An edge with a B colour sticker <em>away from</em> the A colour centre</td><td class="good">GOOD</td></tr>
 </table>
+
+<div class="cube-row">
+  <figure class="photo"><img src="https://lar5.com/cube/rule1.png" width="102" height="60" alt=""><figcaption>Rule 1: red next to red is <strong>good</strong></figcaption></figure>
+  <figure class="photo"><img src="https://lar5.com/cube/rule2.png" width="102" height="60" alt=""><figcaption>Rule 2: red away from red is <strong>bad</strong></figcaption></figure>
+  <figure class="photo"><img src="https://lar5.com/cube/rule3.png" width="102" height="60" alt=""><figcaption>Rule 3: white next to red is <strong>bad</strong></figcaption></figure>
+  <figure class="photo"><img src="https://lar5.com/cube/rule4.png" width="102" height="60" alt=""><figcaption>Rule 4: white away from red is <strong>good</strong></figcaption></figure>
+</div>
+<p>The usual advice applies in step 3 as well: Look ahead, and try to make a good beginning for the next step.</p>
+
+<h4>Advanced</h4>
+<p>Why does the move sequence in the animation above work? It's not just a "magic move". You can understand it. What happens is [1] one bad edge is flipped when moved to the other layer, [2] another bad edge replaces it, and is [3] (un)flipped when the first turn is reversed. Both edges get flipped in the process and so become good. Once you understand that, you can figure out several other moves that do the same thing.</p>
+<p>I find that way of thinking much easier than just learning all cases by heart. However you want to learn them, <strong>every</strong> possible case is given the fastest solution below: <a href="#eo2">2 bad edges</a> · <a href="#eo4">4 bad edges</a> · <a href="#eo6">6 bad edges</a>.</p>
 
 <!-- ── 2 bad edges ─────────────────────────────────────────── -->
 <h3 id="eo2">All positions: 2 bad edges</h3>
@@ -461,12 +617,18 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 <section class="page-section" id="step4">
 <h2 class="section-title"><span class="step-badge">STEP 4</span> Finish 2 Layers</h2>
 
-<p>Back to adding solved pieces! In step 4 we go from 7 to 12 solved pieces out of 20. This is clearly the hardest step — though the other steps are really easy!</p>
-<p>You have only two sides you can turn, and halfway through the step you can't even do many of those moves, since they would destroy what you already built. Keep a firm grip around the 2×2×3 with one hand at all times.</p>
+<p>Back to adding solved pieces! In step 4 we go from 7 to 12 solved pieces out of 20.</p>
+<p>This is clearly the hardest step. Not that it's all <strong>that</strong> hard. You could also say that the other steps are really easy!</p>
+
+<h4>Beginner</h4>
+<p>What you do in step 4 is pretty much the same thing that you do in step 1 and 2. But here you have one hand tied behind your back. You have only two sides you can turn, and halfway through the step you can't even do many of those moves, since they would destroy what you already built in the step.</p>
+<p>From the piece perspective, the goal of step 4 is to add 2 corners and 3 edges to the 2×2×3 block, to make it into a 2×<strong>3</strong>×3 block (2 full layers).</p>
+<p>You have a choice of two ways to expand, either leaving the red or the white layer for last. In the examples we will leave red, expanding with the white-green-orange and white-blue-orange corners and the white-blue, white-green and white-orange edges.</p>
+<p>It's best for the beginner to think of this step as two separate steps, <strong>4a</strong> and <strong>4b</strong>.</p>
 
 <h3>Step 4a</h3>
-<p>Focus on getting one corner and its two adjacent edges in position. The same techniques you use in steps 1 and 2 can be used, but since you can only turn two sides, more manoeuvring is needed.</p>
-<p>Note that you now have two completed 2×2×3 blocks! Remember which of them you started with. If you accidentally start using the other, bad edges <strong>will</strong> reappear, and you have to go back to Step 3.</p>
+<p>First focus on getting one corner and its two adjacent edges in position. The same techniques you use in step 1 and 2 can be used, but since you can only turn two sides, more manoeuvring is needed. To do what you want, you first have to move the pieces in a position where the desired turns can be made on the two free sides.</p>
+<p>Make sure to <strong>only</strong> turn the two unsolved sides! It can be easy to get lost and start turning other sides. Keep a firm grip around the 2×2×3 with one hand.</p>
 
 <div class="cube-row">
   <div class="cube-widget">
@@ -482,10 +644,11 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
     <div class="cube-alg">R U' R' U2 R'</div>
   </div>
 </div>
+<p>Note that you now have two completed 2×2×3 blocks! Remember which of them you started with. If you accidentally start using the other, bad edges <strong>will</strong> reappear, and you have to go back to Step 3. A firm grip of the 2×2×3 is at its most important now! You can also use tape to make it temporarily unmovable.</p>
 
 <h3>Step 4b</h3>
-<p>Putting the final 2 pieces in place without breaking anything is almost claustrophobic. You must wiggle the last layer back and forth, ¼ turn each time. Your only degree of freedom is to choose one of three possible turns with the other layer every other turn.</p>
-<p>The normal way is to join the two pieces in the upper layer, then put the pair in place (these are the continuations of the examples above):</p>
+<p>Putting the final 2 pieces in place without breaking anything is almost claustrophobic (there are a few other options, explained below). Since you can't break up the 2×2×1 block you made in 4a, you have no choices in how to move the white layer. You must wiggle it back and forth, ¼ turn each time. So your only degree of freedom is to choose one of three possible turns with the red layer every other turn!</p>
+<p>The normal way of doing this is to join the two pieces in the upper layer, and then put the pair in place, as in these examples (which are the continuations of the examples above).</p>
 
 <div class="cube-row">
   <div class="cube-widget">
@@ -501,8 +664,11 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
     <div class="cube-alg">U2 R' U' R U2 R' U R</div>
   </div>
 </div>
+<p>A good thing about step 4 is that the (sometimes many) turns can be done <a href="#physical">blindingly fast</a>, since we only turn two sides, and never need to change grip.</p>
 
 <h4>Intermediate</h4>
+<p>If you can place the final corner by itself, that is often good.</p>
+<p>There are easy ways to place the final edge, by very briefly breaking up our previous achievements. For the mirrored positions, almost identical sequences apply. Note that the second one is a variation of Allan™ from step 7!</p>
 <div class="cube-row">
   <div class="cube-widget">
     <div class="roofpig rp140" data-config="base=F4| alg=R U R U R U' R' U' R'"></div>
@@ -525,10 +691,15 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
   <div class="cube-widget">
     <div class="roofpig rp140" data-config="base=F4| alg=U2 R' U' R2 U' R2 U' R' U' R"></div>
     <div class="cube-alg">U2 R' U' R2 U' R2 U' R' U' R</div>
+    <div class="cube-label">Exercise solution: 6 + 4 moves</div>
   </div>
 </div>
+<p>The worst positions are when the last corner and edge are next to each other, but misaligned (first cube above). You <strong>can</strong> untangle the pieces and put them back together using only the "beginner" moves. But it is often faster to use a Sune™. A reverse Sune™ fixes the case when the corner is twisted the other way.</p>
+<p>Check out the <a href="#examples">examples</a> for a description of the "broken corner" position, which is pretty common and good to know.</p>
+<p>As an exercise, try to find how to do the middle of the three example cubes above in 6 + 4 moves instead of 10 + 12. The solution is the second cube above, but it's more fun to try to figure it out yourself.</p>
 
 <h4>A few less obvious 4b tricks</h4>
+<p>Below are a few less than obvious 4b tricks. The <a href="#s4b">Step 4b tricks index</a> has many more!</p>
 <div class="cube-row">
   <div class="cube-widget">
     <div class="roofpig rp140" data-config="base=F4| alg=R2 U R2 U R2 U2 R2"></div>
@@ -546,9 +717,12 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 
 <!-- ── Step 4b full index ──────────────────────────────────── -->
 <h3 id="s4b">Step 4b Tricks — Full Index</h3>
-<p>After going through this methodically, I found better solutions for a third or so of the positions, and became much more consistent in picking the fastest solution. It's lowered my average with 1–2 moves.</p>
+<p>I had been doing step 4b for 20 years, but never systematically gone through every possible position. I knew I sometimes wasn't sure what to do, but I could always invent something pretty quick and move on. In the summer of 2001, when I had a few well deserved months of vacation/unemployment, I finally started doing the full research project. Jan 1 2003 it was finished, and I made this page.</p>
+<p>After going through this methodically, I found better solutions for a third or so of the positions, and also became much more consistent in picking the fastest solution, instead of just one of several possibilities that happened to pop into my head. It's lowered my average with 1–2 moves. And now I pass the savings on to you!</p>
+<p>Some of the more complex ones were discovered using Ron van Bruchem's <a href="http://www.speedcubing.com/CubeSolver/CubeSolver.html" target="_blank">cube solver applet</a> at <a href="http://www.speedcubing.com" target="_blank">speedcubing.com</a>. It was quite a shock when it did my 20 year old 12 turn solutions in 7 turns!</p>
 
 <h4>a — Both pieces in top layer, not adjacent</h4>
+<p>First the easy ones. Both pieces are in the top layer, and not adjacent.</p>
 <div class="cube-grid">
   <div class="cube-widget">
     <div class="roofpig rp140" data-config="base=4B | alg=R U R'"></div>
@@ -577,6 +751,7 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 </div>
 
 <h4>b — Corner placed, three edge positions</h4>
+<p>With the corner placed, we have these three positions.</p>
 <div class="cube-grid">
   <div class="cube-widget">
     <div class="roofpig rp140" data-config="base=4B | alg=L F2 U FZ U' FZ L'"></div>
@@ -593,6 +768,7 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 </div>
 
 <h4>c — Pieces adjacent (harder)</h4>
+<p>The harder ones are when your two pieces are next to each other (and don't match up). The only easy way is to first detangle them, and then do one of the easy moves. But there are better ways. These are the top layer ones.</p>
 <div class="cube-grid">
   <div class="cube-widget">
     <div class="roofpig rp140" data-config="base=4B | alg=R U2 R' U' R U R'"></div>
@@ -600,7 +776,7 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
   </div>
   <div class="cube-widget">
     <div class="roofpig rp140" data-config="base=4B | alg=R U' R' U R U R'"></div>
-    <div class="cube-alg">R U' R' U R U R'</div><div class="cube-label">c2 — Sune™</div>
+    <div class="cube-alg">R U' R' U R U R'</div><div class="cube-label">c2 — You can do this with a Sune™, as seen in Step 4, but I prefer this way.</div>
   </div>
   <div class="cube-widget">
     <div class="roofpig rp140" data-config="base=4B | alg=R' U2 R2 U R2 U R"></div>
@@ -617,6 +793,7 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 </div>
 
 <h4>d — Edge already in place</h4>
+<p>With the edge already in place a funny thing happens. The edges are good as seen from <em>both</em> 2×2×3s. So you can and should use the other one when useful. Seen that way there are only 3 positions.</p>
 <div class="cube-grid">
   <div class="cube-widget">
     <div class="roofpig rp140" data-config="base=4B | alg=R2 U R2 U R2 U2 R2"></div>
@@ -646,19 +823,18 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 <section class="page-section" id="step5">
 <h2 class="section-title"><span class="step-badge">STEP 5</span> Position the Corners</h2>
 
-<p>Now we're at the final layer. Here we do not think as much — we recognise patterns and apply rules.</p>
+<p>Now we're at the final layer. Here we do not think as much. We recognise patterns and apply rules.</p>
 
-<div class="ruta"><strong>Common mistake:</strong> If the edges are not twisted right here, you have either not done step 3 correctly, or screwed up the edges by breaking the 2×2×3 in step 4.</div>
+<div class="ruta"><strong>Common mistake:</strong> If the edges are not twisted right here, you have either not done <a href="#step3">step 3</a> correctly, or screwed up the edges by breaking the 2×2×3 in <a href="#step4">step 4</a>.</div>
 
-<p>In this step we will <strong>place</strong> the top corners correctly, nothing else. The corners normally look pretty unsolved after completing step 5 — you have to inspect them to know they're right.</p>
-<p>To do this we need a tool that moves the top corners without twisting the top edges. This tool is <strong>Niklas™</strong>.</p>
+<p>When starting this step, you should have only one layer remain unsolved, and the edges in it already correctly twisted ("forming a cross"). In this step we will <strong>place</strong> the top corners correctly, nothing else. That means the red/blue/white corner should be between the red, blue and white centres, but its red sticker does <strong>not</strong> have to be facing the red centre. The corners normally look pretty unsolved after completing step 5, you have to inspect them to know they're right.</p>
+<p>To do this we need a tool that moves the top corners without twisting the top edges. This tool is <strong>Niklas™</strong>, and you can see it below.</p>
 
 <div class="named-move">
   <div class="nm-title">Niklas™</div>
   <div class="nm-alg">L U' R' U L' U' R U2</div>
   <div class="nm-note">7-turn sequence. Swaps the two corners opposite the layer where the first move is made. (Turn 8 is just alignment.)</div>
 </div>
-
 <div class="cube-row">
   <div class="cube-widget">
     <div class="roofpig rp140" data-config="base=F5|solved=U-/ec|colored=*/m u/e|tweaks=FR:UFr FL:UFl LB:ULb RB:URb|alg=L U' R' U L' U' R U2"></div>
@@ -666,15 +842,23 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
     <div class="cube-label">Niklas™</div>
   </div>
 </div>
+<p>In the example, don't worry about how the corners get twisted, just note that the two white corners swap position. (Turn 8 is just to align the corners to the centres to show clearly how the corners move. Niklas is a 7 turn sequence.)</p>
 
-<h4>Beginner — odds</h4>
+<h4>Beginner</h4>
+<p>These are the odds:</p>
 <ul>
-  <li>1/6 of the time, the corners will already be correct — go to Step 6.</li>
-  <li>1/6 of the time, two diagonally opposite corners have switched — two Niklas™ needed.</li>
-  <li>4/6 of the time, two adjacent corners have switched — one Niklas™.</li>
+  <li>1/6 of the time, the corners will already be correct. You can go to <a href="#step6">step 6</a>.</li>
+  <li>1/6 of the time, two corners diagonally opposed will have switched positions.</li>
+  <li>4/6 of the time, two adjacent corners will have switched positions.</li>
 </ul>
+<p>First we need to find which two corners (if any) that have switched positions. That's easy. Just turn the top layer until two corners are in correct positions. The two others are either correct or need swapping. There are only four positions to check.</p>
+<p>Niklas™ will swap the two corners opposite the layer where you make its first move. For the diagonal case, two Niklas™es are needed. You can start with any Niklas™, and that will give you the adjacent case.</p>
+<p>You <strong>can</strong> do this by just looking at the top layer corners, but I find it much easier to turn it so the colours match up with the rest of the cube. You waste a move but gain time.</p>
 
 <h4>Intermediate</h4>
+<p>The fast way to check corners that I use is to find two adjacent corners with the same (non top) colour, and move them to the side of that colour. If the corners are correct, all 4 will be in place. If adjacent corners are switched, two will be correct, and you can see which ones. If diagonal corners are switched, all four corners will be placed wrong.</p>
+<p class="note">Example: Start with the red/blue/white one. Red is the top colour, so only blue and white are interesting. Start with blue. Check if any of the adjacent corners have a blue sticker. If so move those corners to the blue side. If not, do the same for white.</p>
+<p>Here is a useful move sequence that directly switches two corners diagonally. It is a different (and as good) way of doing <a href="#yE">Eve</a>.</p>
 <div class="cube-row">
   <div class="cube-widget">
     <div class="roofpig rp140" data-config="base=F5|alg=F U2 F' B' U F U' B UZ F'"></div>
@@ -682,9 +866,10 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
     <div class="cube-label">Direct diagonal swap (Eve)</div>
   </div>
 </div>
+<p>Note that Niklas™ twists the corners in the same way as Sune™ does, so the same "target" rules apply. A Niklas™ that hits a target starts with the same turn as a Sune™ that hits the same target. About half the time you can avoid one Sune™ this way.</p>
 
 <h4>Advanced</h4>
-<p>Note that Niklas™ twists the corners in the same way as Sune™ does, so the same "target" rules apply. About half the time you can avoid one Sune™ in step 6 by choosing the right Niklas™ here.</p>
+<p>For the advanced cuber, the steps 5–7 meld together to one single step of dozens or even hundreds of special cases. To achieve real speed, you need to be able to remember them in a fraction of a second. Below are a few examples. For what to do for each of the 25 different corner cases, check out the <a href="#ymain">complete Step 5+6 index</a>.</p>
 <div class="cube-row">
   <div class="cube-widget">
     <div class="roofpig rp140" data-config="base=F5|alg=L+R' U' R U L' U' R' U R"></div>
@@ -702,8 +887,9 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 <section class="page-section" id="step6">
 <h2 class="section-title"><span class="step-badge">STEP 6</span> Twist the Corners</h2>
 
-<p>So far we have the top edges <strong>twisted</strong> right, and the top corners <strong>placed</strong> right. The next step is <strong>twisting</strong> the corners right. This can be done using only one simple move sequence — <strong>Sune™</strong>. It twists three of the four top corners. Step 6 can always be done with 2 Sunes or less.</p>
-<p>The two animations show both "mirrored" versions of Sune™. Note the big <strong>X</strong> — that is the <strong>target</strong> sticker of the Sune™.</p>
+<h4>Beginner</h4>
+<p>So far we have the top edges <strong>twisted</strong> right, and the top corners <strong>placed</strong> right. The next step is <strong>twisting</strong> the corners right. This can be done using only the one simple move sequence below. I call it <strong>Sune™</strong>. It twists three of the four top corners. It also moves top edges, but we don't care about that yet.</p>
+<p>The two animations show both "mirrored" versions of Sune™. As you can see they're the same moves, just "mirrored". You need both. Note the big <strong>X</strong>. That is the <strong>target</strong> sticker of the Sune™ (explained below).</p>
 
 <div class="cube-row">
   <div class="cube-widget">
@@ -718,10 +904,12 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
   </div>
 </div>
 
-<p>The target of a Sune™ is the corner sticker on the opposite side from the first turn, on the side of the corner moving <em>up</em>. Look for where the black X's are in relation to the first move.</p>
+<p>Step 6 can always be done with 2 Sunes or less. You do <strong>need</strong> to learn Sune™ to use this method.</p>
+<p>To talk about how to use it we have to define the <strong>target</strong> of a Sune™. In words, the target of a Sune™ is the corner sticker on the opposite side from the first turn, on the side of the corner moving <em>up</em>. But it's easier to see from the examples. Just look for where the black X's are in relation to the first move. The pattern is easy to see.</p>
 
 <h4>The rules (assuming a red top layer)</h4>
-<p><strong>Rule 0:</strong> With <strong>no</strong> correct corners, target one of the four red stickers. After the Sune™ there will be one correct corner. Use Rule 1.</p>
+<p>Once you understand targets, you only have these simple rules to keep in mind.</p>
+<p><strong>Rule 0:</strong> With <strong>no</strong> correct corners, target one of the four red stickers. After the Sune™, there will be one correct corner. Use Rule 1 to solve it.</p>
 
 <div class="cube-row">
   <div class="cube-widget">
@@ -735,8 +923,8 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 </div>
 <div class="note">The black X is the target for the shown Sune™. The white X's are the other possible targets.</div>
 
-<p><strong>Rule 1:</strong> With <strong>one</strong> correct corner, target as shown. This solves the corners and completes step 6!</p>
-<p><strong>Rule 2:</strong> With <strong>two</strong> correct corners, target one of the two non-red stickers of a twisted corner. After the Sune™ there will be one correct corner. Use Rule 1.</p>
+<p><strong>Rule 1:</strong> With <strong>one</strong> correct corner, target as shown in the beginner section. This solves the corners and completes step 6!</p>
+<p><strong>Rule 2:</strong> With <strong>two</strong> correct corners, target one of the two non-red stickers of a twisted corner. After the Sune™, there will be one correct corner. Use Rule 1 to solve it.</p>
 
 <div class="cube-row">
   <div class="cube-widget">
@@ -755,10 +943,11 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 <div class="note">The black X is the target for the shown Sune™. The white X's are the other possible targets.</div>
 
 <p><strong>Rule 3:</strong> Three correct corners is impossible.</p>
-<p><strong>Rule 4:</strong> Four correct corners — already solved, go to Step 7.</p>
+<p><strong>Rule 4:</strong> Four correct corners is already solved.</p>
 
 <h4>Intermediate</h4>
-<p>Doing Sune™ backwards (AntiSune) twists corners the same way as Sune™, but moves the edges differently. You can hit a target with either a Sune™ or an AntiSune, and often you can skip step 7 by choosing right.</p>
+<p>First below: doing Sune™ backwards (AntiSune) twists corners the same way as Sune™, but moves the edges differently. <strong>Note the target!</strong> You can hit a target with either a Sune™ or an AntiSune, and often you can skip step 7 by choosing right.</p>
+<p>The middle sequence is a double Sune™, and the last is a Bruno™, and they're simple and fast for those corner looks.</p>
 
 <div class="cube-row">
   <div class="cube-widget">
@@ -778,7 +967,9 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
   </div>
 </div>
 
-<p>There are only 49 possible positions in Step 6. See the <a href="#xmain">Step 6+7 index</a> for solutions to every single one.</p>
+<h4>Advanced</h4>
+<p>You can get under 20 seconds with just what's in this step. Mostly by quick recognition and execution, both of which are in general more important than learning lots of sequences. Having said that, it does help a lot to learn more move sequences to avoid Step 7 more often.</p>
+<p>There are only 49 possible positions in Step 6. Here are <a href="#xmain">solutions to every single one</a>, mostly using combinations of Sune™ and a few other sequences.</p>
 </section>
 
 
@@ -789,14 +980,13 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 <p>Only 12 possible positions remain. 1 of them is the solved case. Here is how to solve the 11 others:</p>
 
 <h4>Beginner</h4>
-<p>8 of the 12 have three permuted edges (or its mirror image). You have to learn Allan™ (and its mirror image).</p>
+<p>8 of the 12 have this position with three permuted edges (or its mirror image). You have to learn the first solution below (and its mirror image). For historical reasons, it is called <strong>Allan™</strong>.</p>
 
 <div class="named-move">
   <div class="nm-title">Allan™</div>
   <div class="nm-alg">F2 U' L+R' F2 L'+R U' F2</div>
-  <div class="nm-note">Cycles three top edges. 8/12 frequency. If you get one of the other positions, just do Allan™ and you will be in a "single Allan™" position.</div>
+  <div class="nm-note">Cycles three top edges. 8/12 frequency.</div>
 </div>
-
 <div class="cube-row">
   <div class="cube-widget">
     <div class="roofpig rp140" data-config="base=F7 | alg=F2 U' L+R' F2 L'+R U' F2"></div>
@@ -809,22 +999,22 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
     <div class="cube-label">Allan™ via 2 Sunes™</div>
   </div>
 </div>
+<p>If you get one of the other positions, you can just do Allan™, and you will be in a "single Allan™" position.</p>
+<p>(An Allan™ can actually be done using only 2 Sune™, as seen in the second cube, if you <em>really</em> don't want to learn many move sequences).</p>
 
 <h4>Intermediate</h4>
-<p>There are only 2 other possible cases. Learn them by heart and learn to do them <strong>fast</strong>.</p>
+<p>There are only 2 other possible cases. Bert™ (first below) happens 2/12 of the time, Arne™ (second), 1/12.</p>
 
 <div class="named-move">
-  <div class="nm-title">Bert™ (H-perm)</div>
+  <div class="nm-title">Bert™ (Z-perm)</div>
   <div class="nm-alg">FZ B2 D R2 FZ B2 L2 FZ B2 D' FZ B2</div>
-  <div class="nm-note">Swaps two pairs of opposite edges. 2/12 frequency.</div>
+  <div class="nm-note">Swaps two pairs of adjacent edges. 2/12 frequency.</div>
 </div>
-
 <div class="named-move">
-  <div class="nm-title">Arne™ (Z-perm)</div>
+  <div class="nm-title">Arne™ (H-perm)</div>
   <div class="nm-alg">R2 FZ B2 L2 D L2 B2 FZ R2</div>
-  <div class="nm-note">Swaps two pairs of adjacent edges. 1/12 frequency.</div>
+  <div class="nm-note">Swaps two pairs of opposite edges. 1/12 frequency.</div>
 </div>
-
 <div class="cube-row">
   <div class="cube-widget">
     <div class="roofpig rp140" data-config="base=F7 | alg=FZ B2 D R2 FZ B2 L2 FZ B2 D' FZ B2"></div>
@@ -837,8 +1027,10 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
     <div class="cube-label">Arne™ — 1/12</div>
   </div>
 </div>
+<p>Learn them by heart. And learn to do them <strong>fast</strong>. You will always need them!</p>
 
 <h4>Advanced — alternative solutions</h4>
+<p>Here are some alternative solutions, that may fit your style better.</p>
 <div class="cube-row">
   <div class="cube-widget">
     <div class="roofpig rp140" data-config="base=F7 | alg=R B' R' B F R' F+B' R' B R F2"></div>
@@ -854,10 +1046,14 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
   </div>
   <div class="cube-widget">
     <div class="roofpig rp140" data-config="base=F7 | alg=R2+LZ+R<< D R2+LZ+R<< U2 R2+LZ+R<< D R2+LZ+R<<"></div>
-    <div class="cube-alg">R2+LZ+R&lt;&lt; D … (Dan Knights)</div>
-    <div class="cube-label">4-movement Bert™</div>
+    <div class="cube-alg">R2+LZ+R&lt;&lt; D R2+LZ+R&lt;&lt; U2 R2+LZ+R&lt;&lt; D R2+LZ+R&lt;&lt;</div>
+    <div class="cube-label">4-movement Bert™ (Dan Knights)</div>
   </div>
 </div>
+<p>2003 World Champion Dan Knights favors the last solution for Bert™. It's a little less straightforward, but can be done in just 4 movements. He explains how with a video <a href="https://lar5.com/cube/ZPermfast.mov" target="_blank">here</a>.</p>
+<p>I think of the first alternative Arne solution as a 'brute force' one. The second is more of a 'finesse' solution. And the third (<em>Thanks to Doug Li</em>) can be done without shifting your grip. All can probably be done faster by many, despite using more turns, depending on your twisting style.</p>
+<p>The other thing you can do is to plan ahead and learn many special top layer cases in the earlier steps, so you can avoid this step much more often than 1 time out of 12.</p>
+<p>The advanced cubist will instinctively mix up the cube when this step has been completed, thereby forcing himself to start again at <a href="#step1">step 1</a>.</p>
 </section>
 
 
@@ -865,10 +1061,11 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 <section class="page-section" id="blox">
 <h2 class="section-title">Block Building Patterns</h2>
 
-<p>The core of this method is to build blocks. It is what steps 1, 2 and 4 are all about. With experience you will pick up some patterns you can immediately recognise, which is one of <strong>the</strong> keys to doing this fast.</p>
+<p>The core of this method is to build blocks. It is what steps 1, 2 and 4 are all about. This can be done intuitively, but with experience you will pick up some patterns you can immediately recognise, which is one of <strong>the</strong> keys to doing this fast.</p>
+<p>Here are some of my favourite patterns. I hope they can be of help. I'll add some more when I think of good ones.</p>
 
 <h3>"Simple join"</h3>
-<p>The one I use the most. It simply consists of finding a corner and edge that are one move away from forming a pair.</p>
+<p>This is trivial in a way, but I don't want to overlook it since it is really the one I use the most. It's the second thing I start looking for on a mixed cube, if there are no already formed pairs. And it is the basis for a lot of my block building — if I have nothing better to do, I start doing or preparing <strong>simple join</strong>s, and that makes things happen. It simply consists of finding a corner and edge that are one move away from forming a pair.</p>
 <div class="cube-row">
   <div class="cube-widget">
     <div class="roofpig rp130" data-config="colors=U:r F:b R:w|colored=UFR UR|alg=F"></div>
@@ -881,7 +1078,7 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 </div>
 
 <h3>"Double join"</h3>
-<p>Very basic and very useful. The most common second goal once you've formed a pair. Since we're building a 2×2×1 block, a centre needs to be part of it as well as the corner and 2 edges.</p>
+<p>Also very basic and very useful. It doesn't "just happen" as much as a <strong>simple join</strong>, but it's the most common second goal once you've formed a pair. Since we're building a 2×2×1 block a centre needs to be part of it, as well as the corner and 2 edges.</p>
 <div class="cube-row">
   <div class="cube-widget">
     <div class="roofpig rp130" data-config="colors=U:o F:y R:g|colored=UFR UR UF U|alg=F"></div>
@@ -894,7 +1091,7 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 </div>
 
 <h3>"Swing"</h3>
-<p>Brilliant when you can get it — pretty often for Step 1, occasionally in Step 2. The first move is just a setup move for a double join in the second move.</p>
+<p>Brilliant when you can get it. That's pretty often for S1, and occasionally in S2. If you want to think of it that way, the first move is just a setup move for a <strong>double join</strong> in the second move. Both the lone edge and the pair can be in other positions, as in example 2.</p>
 <div class="cube-row">
   <div class="cube-widget">
     <div class="roofpig rp130" data-config="colors=U:g D:b F:o R:w|colored=U DFR DR DF D|alg=R2 F2"></div>
@@ -907,7 +1104,8 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 </div>
 
 <h3>"Double swing"</h3>
-<p>A very good Step 1 start. A two-move setup for a double join. Since it's symmetric, you can do it in two ways.</p>
+<p>This is a very good Step 1 start, and it sometimes happens in Step 2 as well. Again, this is a two move setup for a <strong>double join</strong>, but while it's good to be aware of that, I think you have to recognise it on its own. While it is fairly rare in this pure form, you can quite often get there with one or two setup moves (see below).</p>
+<p>Since it's symmetric, you can do it in two ways, as shown. But if the edges are switched, things look very similar, but you have a fairly awkward 6 move solution instead.</p>
 <div class="cube-row">
   <div class="cube-widget">
     <div class="roofpig rp130" data-config="colors=U:r B:w L:b|colored=UBL UL UB U|alg=L2 F2 L2"></div>
@@ -917,6 +1115,9 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
     <div class="roofpig rp130" data-config="colors=U:r B:w L:b|colored=UBL UL UB U|alg=B2 R2 B2"></div>
     <div class="cube-alg">B2 R2 B2</div>
   </div>
+</div>
+<p>Two of <strong>many</strong> examples of similar positions or setups. There's a lot of positions that are very close, and it's hard to recognise them all.</p>
+<div class="cube-row">
   <div class="cube-widget">
     <div class="roofpig rp100" data-config="colors=U:r B:w L:b|colored=UBL UL UB U|alg=L F2 L2"></div>
     <div class="cube-alg">L F2 L2</div>
@@ -928,7 +1129,8 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 </div>
 
 <h3>"Roundabout"</h3>
-<p>Almost only useful as a start of Step 1. If there is no corner/edge pair already formed, there is usually one of these available to form one in 3 moves.</p>
+<p>This is almost only useful as a start of Step 1. If there is no corner/edge pair already formed, there is usually one of these available to form one in 3 moves. There are always ways with fewer moves as well, but these are very easy to spot.</p>
+<p>While useful in themselves, they get really interesting if you can "pick up" one of the other edges on the way (examples 2 &amp; 3). In those cases, since you're building a 2×2×1 block, the centre needs to be in the right place as well. If you allow one setup move (examples 4 &amp; 5), it's a fairly common start.</p>
 <div class="cube-row">
   <div class="cube-widget">
     <div class="roofpig rp130" data-config="colors=U:r R:w B:b|colored=UR UBR|alg=F' L' B'"></div>
@@ -953,7 +1155,8 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 </div>
 
 <h3>"Parallel roundabout"</h3>
-<p>Not very common, but very cool. Occasionally you'll get two roundabout situations at the same time, and the same sequence solves both!</p>
+<p>This one is not very common, but it <em>is</em> very cool, so it gets its own entry.</p>
+<p>In Step 4, the <strong>roundabout</strong> becomes the fairly tortured sequence in the first cube. Sometimes I have no better ideas, and do it just to make something happen. But occasionally you'll get the situation in the second cube, which is in fact two roundabout situations at the same time, and the same sequence solves both. Hehe!!</p>
 <div class="cube-row">
   <div class="cube-widget">
     <div class="roofpig rp130" data-config="colors=U:g B:r R:y|solved=UR-|colored=UBR UB|alg=R U R U R"></div>
@@ -966,7 +1169,9 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 </div>
 
 <h3>"Broken corner"</h3>
-<p>One of my favourites in Step 4. After the first move, the next move sets up the corner for two simple joins that add up to a double join.</p>
+<p>One of my favourites in Step 4, but it can of course occur earlier also.</p>
+<p>This is just something you learn to recognise. But in the position <em>after</em> the first move, you should be able to "smell" that the next move sets up the corner for <em>two</em> <strong>simple join</strong>s that add up to a <strong>double join</strong>. Once you're good at block building, that is — no hurry!</p>
+<p>The second cube is the same idea with a half move as second move.</p>
 <div class="cube-row">
   <div class="cube-widget">
     <div class="roofpig rp130" data-config="colors=U:g B:w R:o|solved=UR-|colored=UBR UB UR U|alg=U R U' R"></div>
@@ -979,7 +1184,7 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 </div>
 
 <h3>"Pillar"</h3>
-<p>Fairly common in Step 4, very easy to spot. Again a setup for a double join.</p>
+<p>This Step 4 trick is fairly common, and very easy to spot. This is again a setup for a <strong>double join</strong>.</p>
 <div class="cube-row">
   <div class="cube-widget">
     <div class="roofpig rp130" data-config="colors=U:o F:b R:w|solved=UR-|colored=UFR UR FR R|alg=R U' R U"></div>
@@ -997,55 +1202,373 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 <section class="page-section" id="ymain">
 <h2 class="section-title">Step 5+6 Final Layer Index</h2>
 
-<p>A complete index of all possible <strong>corner</strong> positions in step 5, and some good ways to solve them. It does not deal with edge issues at all, so after this you are left with step 7.</p>
-<p>There are 27 different ways the corners can be arranged, and for each there are 6 different corner placements, giving 162 configurations in theory. Due to symmetries, there are really just 32 distinct ones. The 7 "corner looks" are named A–G. The sub-pages yA through yG cover every case.</p>
-<p>Apart from Niklas, Sune etc from the main tutorial, 8 sequences are named for use in this index. <strong>Clix, Evelyn and Eve are probably the most important.</strong></p>
+<p>This is a complete index of all possible <strong>corner</strong> positions in step 5, and some good ways to solve them. It does not deal with edge issues at all, so after this you are left with step 7. Since Step 5 is about positioning the corners, this index only deals with positions where the corners need to be swapped. If the corners are correctly placed, see the <a href="#xmain">Step 6 position index</a>.</p>
+
+<h4>The Math</h4>
+<p>I've based this on the 7 possible ways the corners can "look". The top colour stickers of the corners can form 7 different patterns, which I've named A–G. It's easy to see fast, and is what I look for when I get here. The next thing to look for is positions of the corners.</p>
+<p>There are 27 different ways that the corners can be arranged. Corners 1, 2 &amp; 3 can show the top colour three different ways, while the 4th is determined by the other three. 3×3×3 = 27. For each of those, there are 6 different ways the corners can be <strong>placed</strong> to show that pattern. So in total we have 27×6 = 162 different corner configurations. In theory.</p>
+<p>Of those 6 corner placements, 1 is that they are correctly placed, 1 is that two corners are swapped diagonally, and 4 are that adjacent corners are swapped. I've taken to name them like this:</p>
+<ul>
+  <li>Correct already: A, B, …</li>
+  <li>Adjacent swap: Ax, Bx, By, Bz, …</li>
+  <li>Diagonal swap: AA, BB, …</li>
+</ul>
+<p>Due to symmetries etc, the 162 positions are really just 32 distinct ones.</p>
+<ul>
+  <li><strong>Correct:</strong> 7 of 27 (A 1, B 8, C 4, D 4, E 4, F 2, G 4)</li>
+  <li><strong>Adjacent:</strong> 18 of 108 (Ax 4, Bx 8, By 8, Bz 8, Bq 8, Cx 8, Cy 4, Cz 4, Dx 8, Dy 4, Dz 4, Ex 8, Ey 8, Fx 4, Fy 4, Gx 8, Gy 4, Gz 4)</li>
+  <li><strong>Diagonal:</strong> 7 of 27 (AA 1, BB 8, CC 4, DD 4, EE 4, FF 2, GG 4)</li>
+</ul>
+<p>For example, 8 of 162 is 4.94% of the cases.</p>
+
+<h4>How much should I learn?</h4>
+<p>First of all, there is nothing wrong with learning a lot of final layer sequences, but you should understand that it is not the only or even the most important way to get fast. It's just a way to use fewer moves. Getting fast is mostly a mix of two things: using <strong>fewer</strong> moves, and making <strong>faster</strong> moves.</p>
+<p>For few moves, learning to do Step 1–4 in few moves is the most important. Aim for 30 moves when going slow and thinking about every move, and don't expect to get to 30 very fast. Step 5–7 improvements is what this page is about, and you can cut that down from 30 to 15–20 if you memorize a lot of these sequences.</p>
+<p>For faster moves, the two important parts are physical finger speed and lookahead. The trap here is to get fixated with just doing moves incredibly fast, but failing at lookahead. If you do 7 moves in a second and then have to spend 3 seconds finding where to do your next move, you're not really going fast. Better to do 3 moves per second but always know what your next move is.</p>
+<p>I just say this since I think a lot of people get caught up in learning sequences instead of doing other more important stuff that I can't really make a page for. That said, if you like to learn all this anyway, go ahead.</p>
+
+<h4>OK, but which cases should I learn??</h4>
+<p>Of my two indexes, <strong>Step 5+6</strong> is more important to know than <strong><a href="#xmain">Step 6+7</a></strong>. So start here.</p>
+<p>Apart from Niklas, Sune etc from the main tutorial, I've named 8 sequences for use in the index. Most of my solutions are combinations of these ~15 sequences. If you learn anything, learn those. <strong>Clix, Evelyn and Eve are probably the most important.</strong></p>
 
 <div class="ixrow">
   <div class="ixcell">
+    <img src="https://lar5.com/cube/gif/By.gif" class="ix-look-sm" alt="">
     <b>By — Buffy</b>
     <div class="roofpig rpidx" data-config="base=Y | alg=L' UZ L U2 R U' L' U L+R'"></div>
     <div class="cube-alg">L' UZ L U2 R U' L' U L+R'</div>
   </div>
   <div class="ixcell">
+    <img src="https://lar5.com/cube/gif/Bz.gif" class="ix-look-sm" alt="">
     <b>Bz — AntiBuffy</b>
     <div class="roofpig rpidx" data-config="base=Y | alg=L'+R U R' U' L U2 R UZ R'"></div>
     <div class="cube-alg">L'+R U R' U' L U2 R UZ R'</div>
   </div>
   <div class="ixcell">
+    <img src="https://lar5.com/cube/gif/BB.gif" class="ix-look-sm" alt="">
     <b>BB — Bob</b>
     <div class="roofpig rpidx" data-config="base=Y | alg=R' U2 L U' R U L' U R' U R"></div>
     <div class="cube-alg">R' U2 L U' R U L' U R' U R</div>
   </div>
   <div class="ixcell">
+    <img src="https://lar5.com/cube/gif/Cx.gif" class="ix-look-sm" alt="">
     <b>Cx — Clix</b>
     <div class="roofpig rpidx" data-config="base=Y | alg=L' B' R B L B' R' B"></div>
     <div class="cube-alg">L' B' R B L B' R' B</div>
   </div>
   <div class="ixcell">
+    <img src="https://lar5.com/cube/gif/Cz.gif" class="ix-look-sm" alt="">
     <b>Cz — Czeslaw</b>
     <div class="roofpig rpidx" data-config="base=Y | alg=R B2 R FZ R' B2 R F2 R2"></div>
     <div class="cube-alg">R B2 R FZ R' B2 R F2 R2</div>
   </div>
   <div class="ixcell">
+    <img src="https://lar5.com/cube/gif/Dz.gif" class="ix-look-sm" alt="">
     <b>Dz — Denzel</b>
     <div class="roofpig rpidx" data-config="base=Y | alg=B2 RZ B' L2 B R2 B' L2 B'"></div>
     <div class="cube-alg">B2 RZ B' L2 B R2 B' L2 B'</div>
   </div>
   <div class="ixcell">
+    <img src="https://lar5.com/cube/gif/Ey.gif" class="ix-look-sm" alt="">
     <b>Ey — Evelyn</b>
     <div class="roofpig rpidx" data-config="base=Y | alg=F R' F' L F R F' L'"></div>
     <div class="cube-alg">F R' F' L F R F' L'</div>
   </div>
   <div class="ixcell">
+    <img src="https://lar5.com/cube/gif/EE.gif" class="ix-look-sm" alt="">
     <b>EE — Eve</b>
     <div class="roofpig rpidx" data-config="base=Y | alg=F U2 B' U F' U' B F UZ F'"></div>
     <div class="cube-alg">F U2 B' U F' U' B F UZ F'</div>
   </div>
 </div>
 
-<p>Corner groups: <strong>A</strong> — Ax, AA &nbsp;·&nbsp; <strong>B</strong> — Bx, By, Bz, Bq, BB &nbsp;·&nbsp; <strong>C</strong> — Cx, Cy, Cz, CC &nbsp;·&nbsp; <strong>D</strong> — Dx, Dy, Dz, DD &nbsp;·&nbsp; <strong>E</strong> — Ex, Ey, EE &nbsp;·&nbsp; <strong>F</strong> — Fx, Fy, FF &nbsp;·&nbsp; <strong>G</strong> — Gx, Gy, Gz, GG</p>
-<p>The individual group pages (yA–yG) are on the live site at <a href="https://lar5.com/cube/yA.html" target="_blank">lar5.com/cube/yA.html</a> etc.</p>
+<h4>Really Advanced Stuff</h4>
+<p>I've been working on a full <a href="https://lar5.com/cube/270/index.html" target="_blank">Step 5+6+7 Index</a>, with a new approach. It's still a bit crude, but I think it's already the best way to do the final layer, if you want to spend a <strong>lot</strong> of effort being really fast.</p>
+<p>A lot of the sequences are taken from Bernard Helmstetter's computer runs. This just scratches the surface of what is on <a href="http://www.ai.univ-paris8.fr/~bh/cube/" target="_blank">his site</a>.</p>
+
+<h4>The corner groups</h4>
+<ul class="ix-groups">
+  <li><a href="#yA"><img src="https://lar5.com/cube/gif/A.gif" alt=""></a> <strong>A</strong> — Ax, AA</li>
+  <li><a href="#yB"><img src="https://lar5.com/cube/gif/B.gif" alt=""></a> <strong>B</strong> — Bx, By, Bz, Bq, BB</li>
+  <li><a href="#yC"><img src="https://lar5.com/cube/gif/C.gif" alt=""></a> <strong>C</strong> — Cx, Cy, Cz, CC</li>
+  <li><a href="#yD"><img src="https://lar5.com/cube/gif/D.gif" alt=""></a> <strong>D</strong> — Dx, Dy, Dz, DD</li>
+  <li><a href="#yE"><img src="https://lar5.com/cube/gif/E.gif" alt=""></a> <strong>E</strong> — Ex, Ey, EE</li>
+  <li><a href="#yF"><img src="https://lar5.com/cube/gif/F.gif" alt=""></a> <strong>F</strong> — Fx, Fy, FF</li>
+  <li><a href="#yG"><img src="https://lar5.com/cube/gif/G.gif" alt=""></a> <strong>G</strong> — Gx, Gy, Gz, GG</li>
+</ul>
+
+<p class="ix-nav">Groups: <a href="#yA">A</a> · <a href="#yB">B</a> · <a href="#yC">C</a> · <a href="#yD">D</a> · <a href="#yE">E</a> · <a href="#yF">F</a> · <a href="#yG">G</a></p>
+
+<h3 id="yA">Step 5+6 — Group A</h3>
+<div class="ix-group"><img class="ix-look" src="https://lar5.com/cube/gif/A.gif" alt="Corner look A"></div>
+<p class="ix-intro">This corner configuration occurs 1 time out of 27. 
+  </p>
+<h4>Combinations</h4>
+<div class="ixrow">
+ <div class="ixcell">
+  <div class="cpp"><div>Ax</div><img src="https://lar5.com/cube/gif/Ax.gif" alt=""><span>4/162</span></div>
+  Niklas/Sune
+  <div class="roofpig rpidx" data-config="base=Y | alg=R U' L' U R' U2 L U' L' U2 L"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>AA</div><img src="https://lar5.com/cube/gif/AA.gif" alt=""><span>4/162</span></div>
+  Bob + Sune
+  <div class="roofpig rpidx" data-config="base=Y | alg=R U2 L' U R' U' L U' R U' R' L U L' U L U2 L'"></div>
+ </div>
+</div>
+<h4>Perfect sequences</h4>
+<div class="ixrow">
+ <div class="ixcell perfa">
+  <div class="cpp"><div>Ax</div><img src="https://lar5.com/cube/gif/Ax.gif" alt=""><span>4/162</span></div>
+  <div class="roofpig rpidx" data-config="base=Y | alg=B L' B R2 B' L B R2 B2"></div>
+ </div>
+ <div class="ixcell perfa">
+  <div class="cpp"><div>AA</div><img src="https://lar5.com/cube/gif/AA.gif" alt=""><span>4/162</span></div>
+  <div class="roofpig rpidx" data-config="base=Y | alg=B U' B2 R2 U' B R2 B' U R2 B2 U B'"></div>
+ </div>
+</div>
+
+
+<h3 id="yB">Step 5+6 — Group B</h3>
+<div class="ix-group"><img class="ix-look" src="https://lar5.com/cube/gif/B.gif" alt="Corner look B"></div>
+<p class="ix-intro">This corner configuration occurs 8 times out of 27. 
+  </p>
+<h4>Combinations</h4>
+<div class="ixrow">
+ <div class="ixcell">
+  <div class="cpp"><div>Bx</div><img src="https://lar5.com/cube/gif/Bx.gif" alt=""><span>8/162</span></div>
+  <b>Niklas</b>
+  <div class="roofpig rpidx" data-config="base=Y | alg=R U' L' U R' U' L"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>By</div><img src="https://lar5.com/cube/gif/By.gif" alt=""><span>8/162</span></div>
+  <b>Buffy</b>
+ <div class="roofpig rpidx" data-config="base=Y | alg=L' U2 L U2 R U' L' U L+R'"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>Bz</div><img src="https://lar5.com/cube/gif/Bz.gif" alt=""><span>8/162</span></div>
+  <b>AntiBuffy</b>
+   <div class="roofpig rpidx" data-config="base=Y | alg=L'+R U R' U' L U2 R U2 R'"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>Bq</div><img src="https://lar5.com/cube/gif/Bq.gif" alt=""><span>8/162</span></div>
+  Niklas/Sune
+   <div class="roofpig rpidx" data-config="base=Y | alg=B' U F U' B U F' R' U' R U' R' U2 R"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>BB</div><img src="https://lar5.com/cube/gif/BB.gif" alt=""><span>8/162</span></div>
+  <b>Bob</b>
+  <div class="roofpig rpidx" data-config="base=Y | alg=R' U2 L U' R U L' U R' U R"></div>
+ </div>
+</div>
+<h4>Perfect sequence</h4>
+<div class="ixrow">
+  <div class="ixcell perfa">
+   <div class="cpp"><div>Bq</div><img src="https://lar5.com/cube/gif/Bq.gif" alt=""><span>8/162</span></div>
+   <span style="font-size:80%; font-style:italic;">Doug Li's signature move</span>
+    <div class="roofpig rpidx" data-config="base=Y | alg=L F' U2 F L' F' L U2 L' F"></div>
+  </div>
+</div>
+
+
+<h3 id="yC">Step 5+6 — Group C</h3>
+<div class="ix-group"><img class="ix-look" src="https://lar5.com/cube/gif/C.gif" alt="Corner look C"></div>
+<p class="ix-intro">This corner configuration occurs 4 times out of 27. 
+  </p>
+<h4>Combinations</h4>
+<div class="ixrow">
+ <div class="ixcell">
+  <div class="cpp"><div>Cx</div><img src="https://lar5.com/cube/gif/Cx.gif" alt=""><span>8/162</span></div>
+  <b>Clix </b><span class="liten">[AntiEvelyn]</span>
+   <div class="roofpig rpidx" data-config="base=Y | alg=L' B' R B L B' R' B"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>Cy</div><img src="https://lar5.com/cube/gif/Cy.gif" alt=""><span>4/162</span></div>
+  Sune + Niklas
+   <div class="roofpig rpidx" data-config="base=Y | alg=R U' L' U R' U' L F' U' F U' F' U2 F"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>Cz</div><img src="https://lar5.com/cube/gif/Cz.gif" alt=""><span>4/162</span></div>
+  <b>Czeslaw </b><span class="liten">[AntiDenzel]</span>
+   <div class="roofpig rpidx" data-config="base=Y | alg=R B2 R F2 R' B2 R F2 R2"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>CC</div><img src="https://lar5.com/cube/gif/CC.gif" alt=""><span>4/162</span></div>
+  Eve + Sune
+   <div class="roofpig rpidx" data-config="base=Y | alg=L U2 R' U L' U' R L U2 L2 U' L U' L' U2 L"></div>
+ </div>
+</div>
+<h4>Perfect sequences</h4>
+<div class="ixrow">
+ <div class="ixcell perfa">
+  <div class="cpp"><div>Cy</div><img src="https://lar5.com/cube/gif/Cy.gif" alt=""><span>4/162</span></div>
+   <div class="roofpig rpidx" data-config="base=Y | alg=F U' B U F' B' U2 B U B'"></div>
+ </div>
+ <div class="ixcell perfa">
+  <div class="cpp"><div>CC</div><img src="https://lar5.com/cube/gif/CC.gif" alt=""><span>4/162</span></div>
+   <div class="roofpig rpidx" data-config="base=Y | alg=B' U B2 D F' L2 F D' B2 U' B"></div>
+ </div>
+</div>
+
+
+<h3 id="yD">Step 5+6 — Group D</h3>
+<div class="ix-group"><img class="ix-look" src="https://lar5.com/cube/gif/D.gif" alt="Corner look D"></div>
+<p class="ix-intro">This corner configuration occurs 4 times out of 27.</p>
+<h4>Combinations</h4>
+<div class="ixrow">
+ <div class="ixcell">
+  <div class="cpp"><div>Dx</div><img src="https://lar5.com/cube/gif/Dx.gif" alt=""><span>8/162</span></div>
+  Niklas + Sune
+   <div class="roofpig rpidx" data-config="base=Y | alg=F U' B' U F' U' B F' U' F U' F' U2 F"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>Dy</div><img src="https://lar5.com/cube/gif/Dy.gif" alt=""><span>4/162</span></div>
+  Niklas + Bruno
+   <div class="roofpig rpidx" data-config="base=Y | alg=R U' L' U R' U' L B U2 B2 U' B2 U' B2 U2 B"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>Dz</div><img src="https://lar5.com/cube/gif/Dz.gif" alt=""><span>4/162</span></div>
+  <b>Denzel </b><span class="liten">[AntiCzeslaw]</span>
+   <div class="roofpig rpidx" data-config="base=Y | alg=B2 R2 B' L2 B R2 B' L2 B'"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>DD</div><img src="https://lar5.com/cube/gif/DD.gif" alt=""><span>4/162</span></div>
+  Niklas + Niklas
+   <div class="roofpig rpidx" data-config="base=Y | alg=F U' B' U F' U' B F' U B U' F U B'"></div>
+ </div>
+</div>
+<h4>Perfect sequences</h4>
+<div class="ixrow">
+ <div class="ixcell perfa">
+  <div class="cpp"><div>Dx</div><img src="https://lar5.com/cube/gif/Dx.gif" alt=""><span>8/162</span></div>
+   <div class="roofpig rpidx" data-config="base=Y | alg=F2 D F' U2 F D' F' U2 F'"></div>
+ </div>
+ <div class="ixcell perfa">
+  <div class="cpp"><div>Dy</div><img src="https://lar5.com/cube/gif/Dy.gif" alt=""><span>4/162</span></div>
+   <div class="roofpig rpidx" data-config="base=Y | alg=R U2 L' R2 U2 L U L' U2 R2 U' L R'"></div>
+ </div>
+ <div class="ixcell perfa">
+  <div class="cpp"><div>DD</div><img src="https://lar5.com/cube/gif/DD.gif" alt=""><span>4/162</span></div>
+   <div class="roofpig rpidx" data-config="base=Y | alg=B' U2 B R U' B' U' B U R'"></div>
+ </div>
+</div>
+
+
+<h3 id="yE">Step 5+6 — Group E</h3>
+<div class="ix-group"><img class="ix-look" src="https://lar5.com/cube/gif/E.gif" alt="Corner look E"></div>
+<p class="ix-intro">This corner configuration occurs 4 times out of 27.</p>
+<h4>Combinations</h4>
+<div class="ixrow">
+ <div class="ixcell">
+  <div class="cpp"><div>Ex</div><img src="https://lar5.com/cube/gif/Ex.gif" alt=""><span>8/162</span></div>
+  Niklas + Sune
+   <div class="roofpig rpidx" data-config="base=Y | alg=R U' L' U R' U' L B' U' B U' B' U2 B"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>Ey</div><img src="https://lar5.com/cube/gif/Ey.gif" alt=""><span>8/162</span></div>
+  <b>Evelyn </b><span class="liten">[AntiClix]</span>
+   <div class="roofpig rpidx" data-config="base=Y | alg=F R' F' L F R F' L'"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>EE</div><img src="https://lar5.com/cube/gif/EE.gif" alt=""><span>4/162</span></div>
+  <b>Eve</b>
+   <div class="roofpig rpidx" data-config="base=Y | alg=F U2 B' U F' U' B F U2 F'"></div>
+ </div>
+</div>
+<h4>Perfect sequences</h4>
+<div class="ixrow">
+ <div class="ixcell perfa">
+  <div class="cpp"><div>Ex</div><img src="https://lar5.com/cube/gif/Ex.gif" alt=""><span>8/162</span></div>
+   <div class="roofpig rpidx" data-config="base=Y | alg=F' U2 F' D' F U2 F' D F2"></div>
+ </div>
+ <div class="ixcell perfa">
+  <div class="cpp"><div>EE</div><img src="https://lar5.com/cube/gif/EE.gif" alt=""><span>4/162</span></div>
+   <div class="roofpig rpidx" data-config="base=Y | alg=B L2 F' D F' D' F2 L2 B'"></div>
+ </div>
+</div>
+
+
+<h3 id="yF">Step 5+6 — Group F</h3>
+<div class="ix-group"><img class="ix-look" src="https://lar5.com/cube/gif/F.gif" alt="Corner look F"></div>
+<p class="ix-intro">This corner configuration occurs 2 times out of 27.</p>
+<h4>Combinations</h4>
+<div class="ixrow">
+ <div class="ixcell">
+  <div class="cpp"><div>Fx</div><img src="https://lar5.com/cube/gif/Fx.gif" alt=""><span>4/162</span></div>
+  Evelyn + Sune
+   <div class="roofpig rpidx" data-config="base=Y | alg=R B' R' F R B R' F' R U R' U R U2 R'"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>Fy</div><img src="https://lar5.com/cube/gif/Fy.gif" alt=""><span>4/162</span></div>
+  Sune/Niklas
+   <div class="roofpig rpidx" data-config="base=Y | alg=L U L' U L U R' U L' U' R"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>FF</div><img src="https://lar5.com/cube/gif/FF.gif" alt=""><span>2/162</span></div>
+  Niklas + Niklas
+   <div class="roofpig rpidx" data-config="base=Y | alg=R U' L' U R' U' L R U' L' U R' U' L"></div>
+ </div>
+</div>
+<h4>Perfect sequences</h4>
+<div class="ixrow">
+ <div class="ixcell perfa">
+  <div class="cpp"><div>Fx</div><img src="https://lar5.com/cube/gif/Fx.gif" alt=""><span>4/162</span></div>
+  <I>inverse Gz</I>
+   <div class="roofpig rpidx" data-config="base=Y | alg=B U2 F+B' U' R2 U' R2 U R2 F'"></div>
+ </div>
+ <div class="ixcell perfa">
+  <div class="cpp"><div>FF</div><img src="https://lar5.com/cube/gif/FF.gif" alt=""><span>2/162</span></div>
+  &nbsp;
+   <div class="roofpig rpidx" data-config="base=Y | alg=B L2 B2 U2 B L2 B' U2 B2 L2 B'"></div>
+ </div>
+</div>
+
+
+<h3 id="yG">Step 5+6 — Group G</h3>
+<div class="ix-group"><img class="ix-look" src="https://lar5.com/cube/gif/G.gif" alt="Corner look G"></div>
+<p class="ix-intro">This corner configuration occurs 4 times out of 27.</p>
+<h4>Combinations</h4>
+<div class="ixrow">
+ <div class="ixcell">
+  <div class="cpp"><div>Gx</div><img src="https://lar5.com/cube/gif/Gx.gif" alt=""><span>8/162</span></div>
+  Niklas + Sune
+   <div class="roofpig rpidx" data-config="base=Y | alg=F' U B U' F U B2 U' B U' B' U2 B"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>Gy</div><img src="https://lar5.com/cube/gif/Gy.gif" alt=""><span>4/162</span></div>
+  Niklas/AntiSune
+   <div class="roofpig rpidx" data-config="base=Y | alg=R U' L' U R' U L U L' U L"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>Gz</div><img src="https://lar5.com/cube/gif/Gz.gif" alt=""><span>4/162</span></div>
+  Clix + Sune
+   <div class="roofpig rpidx" data-config="base=Y | alg=B' R' F R B R' F' R L U L' U L U2 L'"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>GG</div><img src="https://lar5.com/cube/gif/GG.gif" alt=""><span>4/162</span></div>
+  Bob/Sune
+   <div class="roofpig rpidx" data-config="base=Y | alg=R U2 L' U R' U' L U' R U' R2 U' R U' R' U2 R"></div>
+ </div>
+</div>
+<h4>Perfect sequences</h4>
+<div class="ixrow">
+ <div class="ixcell perfa">
+  <div class="cpp"><div>Gx</div><img src="https://lar5.com/cube/gif/Gx.gif" alt=""><span>8/162</span></div>
+   &nbsp;
+   <div class="roofpig rpidx" data-config="base=Y | alg=R' F2 L F2 R F' L B L B' L F"></div>
+ </div>
+ <div class="ixcell perfa">
+  <div class="cpp"><div>Gz</div><img src="https://lar5.com/cube/gif/Gz.gif" alt=""><span>4/162</span></div>
+  <i>inverse Fx</i>
+   <div class="roofpig rpidx" data-config="base=Y | alg=R B2 U' B2 U B2 U L+R' U2 L'"></div>
+ </div>
+ <div class="ixcell perfa">
+  <div class="cpp"><div>GG</div><img src="https://lar5.com/cube/gif/GG.gif" alt=""><span>4/162</span></div>
+  &nbsp;
+   <div class="roofpig rpidx" data-config="base=Y | alg=L B' U' L2 U' B U B' L2 U B L'"></div>
+ </div>
+</div>
+
 </section>
 
 
@@ -1053,18 +1576,9 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 <section class="page-section" id="xmain">
 <h2 class="section-title">Step 6+7 Final Layer Index</h2>
 
-<p>A complete index of all 50 possible positions in step 6, and how to best solve them. In step 6 all corners are in the right position but (probably) twisted wrong, and all edges twisted right but (probably) in the wrong position.</p>
-<p>For all positions a simple solution is given using mainly Sune, AntiSune, Rune and Bruno — averaging 14.1 moves, at most 20. About half the positions also have better "perfect sequences" averaging 12.9 moves, produced by Bernard Helmstetter.</p>
-<p>The 7 corner groups A–G:</p>
-<ul>
-  <li><strong>A</strong> — All corners correct. Step 7 only.</li>
-  <li><strong>B</strong> — One correct corner. A single Sune can fix the corners.</li>
-  <li><strong>C</strong> — Two adjacent correct corners, the others "sideways".</li>
-  <li><strong>D</strong> — Two adjacent correct corners, the others "on top".</li>
-  <li><strong>E</strong> — Two diagonal correct corners.</li>
-  <li><strong>F</strong> — Four incorrect corners "on toe". Land of the Double Sune.</li>
-  <li><strong>G</strong> — Four incorrect corners "on heels". Let Bruno guide you.</li>
-</ul>
+<p>This is a complete index of all 50 possible positions in step 6, and how to best solve them. In step 6 all corners are in the right position but (probably) twisted wrong, and all edges twisted right but (probably) in the wrong position.</p>
+<p>There are 27 possible corner configurations. For each there are 12 possible edge configurations. So in total 27×12 = 324 different positions. Fortunately many of them are really the same position, just mirrored or rotated. It turns out there are only 50 distinct positions. One of them is the solved position, and 2 (C1 and D1) are really the same position.</p>
+<p>For all positions I give a simple solution that almost only consists of the four first sequences seen below (Sune, AntiSune, Rune, Bruno), and the step 7 sequences. That is pretty much the ones I use for speed cubing. They use an average of 14.1 moves and at most 20. For about half of the positions there are better known solutions, shown under <em>Perfect sequences</em> (shaded). That's a whole lot more to memorize, but you get down to 12.9 moves on average, or 17 at most. There are better sequences for a few of them, but this is pretty close to the optimal set of solutions. All the better sequences are produced by Bernard Helmstetter, using a program he has written. He has <a href="http://www.ai.univ-paris8.fr/~bh/cube/" target="_blank">a lot more solutions</a> on his site. The "Benny" move seen below in B9, and its inverse, are very useful.</p>
 
 <div class="ixrow">
   <div class="ixcell">
@@ -1094,7 +1608,457 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
   </div>
 </div>
 
-<p>The individual group pages (xA–xG) are on the live site at <a href="https://lar5.com/cube/xA.html" target="_blank">lar5.com/cube/xA.html</a> etc.</p>
+<p>These solutions ignore the top layer's position relative to the rest of the cube. So 3 times out of 4 there will be an extra turn needed. So you might want to add 0.75 moves to the move counts here to get really correct numbers.</p>
+<p>The positions are organized by corner configuration. There are 7 different. I have arbitrarily named them A–G, and drawn pictures of them, each linking to its group below.</p>
+<p>Of my two indexes, <strong><a href="#ymain">Step 5+6</a></strong> is more important to know than <strong>Step 6+7</strong>. So start there.</p>
+
+<h4>The corner groups</h4>
+<ul class="ix-groups">
+  <li><a href="#xA"><img src="https://lar5.com/cube/gif/A.gif" alt=""></a> <strong>A</strong> — All corners correct. Step 7. Only edges left to fix.</li>
+  <li><a href="#xB"><img src="https://lar5.com/cube/gif/B.gif" alt=""></a> <strong>B</strong> — One correct corner. A single Sune can fix the corners. It can take a lot of turns anyway.</li>
+  <li><a href="#xC"><img src="https://lar5.com/cube/gif/C.gif" alt=""></a> <strong>C</strong> — Two adjacent correct corners, the others "sideways".</li>
+  <li><a href="#xD"><img src="https://lar5.com/cube/gif/D.gif" alt=""></a> <strong>D</strong> — Two adjacent correct corners, the others "on top".</li>
+  <li><a href="#xE"><img src="https://lar5.com/cube/gif/E.gif" alt=""></a> <strong>E</strong> — Two diagonal correct corners.</li>
+  <li><a href="#xF"><img src="https://lar5.com/cube/gif/F.gif" alt=""></a> <strong>F</strong> — Four incorrect corners "on toe". Land of the Double Sune.</li>
+  <li><a href="#xG"><img src="https://lar5.com/cube/gif/G.gif" alt=""></a> <strong>G</strong> — Four incorrect corners "on heels". Let Bruno guide you.</li>
+</ul>
+
+<p class="ix-nav">Groups: <a href="#xA">A</a> · <a href="#xB">B</a> · <a href="#xC">C</a> · <a href="#xD">D</a> · <a href="#xE">E</a> · <a href="#xF">F</a> · <a href="#xG">G</a></p>
+
+<h3 id="xA">Step 6+7 — Group A</h3>
+<div class="ix-group"><img class="ix-look" src="https://lar5.com/cube/gif/A.gif" alt="Corner look A"></div>
+<p class="ix-intro">This corner configuration occurs 1 time out of 27.<p></p>
+<div class="ixrow">
+ <div class="ixcell perfa">
+  <div class="cpp"><div>A1</div><img src="https://lar5.com/cube/gif/none.gif" alt=""><span>1/12</span><span>8%</span></div>
+  <b>Nirvana</b>
+   <div class="roofpig rpidx" data-config="base=X"></div>
+ </div>
+ <div class="ixcell perfa">
+   <div class="cpp"><div>A2</div><img src="https://lar5.com/cube/gif/plus.gif" alt=""><span>1/12</span><span>8%</span></div>
+   <b>Arne</b>
+   <div class="roofpig rpidx" data-config="base=X | alg=R2 FZ+B2 L2 D L2 B2+FZ R2"></div>
+  </div>
+ <div class="ixcell perfa">
+   <div class="cpp"><div>A3</div><img src="https://lar5.com/cube/gif/diag2.gif" alt=""><span>2/12</span><span>17%</span></div>
+   <b>Bert</b>
+   <div class="roofpig rpidx" data-config="base=X | alg=FZ+B2 D R2 FZ+B2 L2 FZ+B2 D' FZ+B2"></div>
+  </div>
+ <div class="ixcell perfa">
+   <div class="cpp"><div>A4</div><img src="https://lar5.com/cube/gif/h3.gif" alt=""><span>8/12</span><span>67%</span></div>
+   <b>Allan</b>
+   <div class="roofpig rpidx" data-config="base=X | alg=R2 U' F+B' R2 B+F' U' R2"></div>
+  </div>
+</div>
+
+
+<h3 id="xB">Step 6+7 — Group B</h3>
+<div class="ix-group"><img class="ix-look" src="https://lar5.com/cube/gif/B.gif" alt="Corner look B"></div>
+<p class="ix-intro">This corner configuration occurs 8 times out of 27.
+  </p>
+<h4>Combinations</h4>
+<div class="ixrow">
+ <div class="ixcell">
+   <div class="cpp"><div>B1</div><img src="https://lar5.com/cube/gif/none.gif" alt=""><span>1/12</span><span>8%</span></div>
+   AntiSune + Allan
+   <div class="roofpig rpidx" data-config="base=X | alg=F' UZ F U F' U F' U' R'+L F2 L'+R U' F2"></div>
+ </div>
+ <div class="ixcell">
+   <div class="cpp"><div>B2</div><img src="https://lar5.com/cube/gif/plus.gif" alt=""><span>1/12</span><span>8%</span></div>
+   <b>Rune</b>
+  <div class="roofpig rpidx" data-config="base=X | alg=L' U' L U' L U L2 U L2 U2 L'"></div>
+ </div>
+ <div class="ixcell">
+   <div class="cpp"><div>B3</div><img src="https://lar5.com/cube/gif/diag2.gif" alt=""><span>1/12</span><span>8%</span></div>
+   Sune + AntiSune
+  <div class="roofpig rpidx" data-config="base=X | alg=B' U' B U' B' U2 B R U2 R' U' R U' R'"></div>
+  </div>
+ <div class="ixcell">
+   <div class="cpp"><div>B4</div><img src="https://lar5.com/cube/gif/diag1.gif" alt=""><span>1/12</span><span>8%</span></div>
+   Sune + Allan
+  <div class="roofpig rpidx" data-config="base=X | alg=R U R' U R UZ R U' F+B' R2 B+F' U' R2"></div>
+  </div>
+</div>
+<div class="ixrow">
+ <div class="ixcell">
+   <div class="cpp"><div>B5</div><img src="https://lar5.com/cube/gif/v9.gif" alt=""><span>1/12</span><span>8%</span></div>
+   <b>Sune</b>
+   <div class="roofpig rpidx" data-config="base=X | alg=R U R' U R UZ R'"></div>
+  </div>
+ <div class="ixcell">
+   <div class="cpp"><div>B6</div><img src="https://lar5.com/cube/gif/v6.gif" alt=""><span>1/12</span><span>8%</span></div>
+   <b>AntiSune</b>
+   <div class="roofpig rpidx" data-config="base=X | alg=F' UZ F U F' U F"></div>
+ </div>
+ <div class="ixcell">
+   <div class="cpp"><div>B7</div><img src="https://lar5.com/cube/gif/h9.gif" alt=""><span>1/12</span><span>8%</span></div>
+   Sune + Allan
+   <div class="roofpig rpidx" data-config="base=X | alg=R U R' U R UZ R' B2 U' R+L' B2 R'+L U' B2"></div>
+ </div>
+ <div class="ixcell">
+   <div class="cpp"><div>B8</div><img src="https://lar5.com/cube/gif/v12.gif" alt=""><span>1/12</span><span>8%</span></div>
+   Sune + Allan
+   <div class="roofpig rpidx" data-config="base=X | alg=R U R' U R UZ R' F2 U' R'+L F2 L'+R U' F2"></div>
+ </div>
+</div>
+<div class="ixrow">
+ <div class="ixcell">
+   <div class="cpp"><div>B9</div><img src="https://lar5.com/cube/gif/h3.gif" alt=""><span>1/12</span><span>8%</span></div>
+   Sune + Allan
+   <div class="roofpig rpidx" data-config="base=X | alg=R U R' U R UZ R' L2 U B+F' L2 F+B' U L2"></div>
+ </div>
+ <div class="ixcell">
+   <div class="cpp"><div>B10</div><img src="https://lar5.com/cube/gif/h12.gif" alt=""><span>1/12</span><span>8%</span></div>
+   AntiSune + Allan
+   <div class="roofpig rpidx" data-config="base=X | alg=F' UZ F U F' U F' U R'+L F2 L'+R U F2"></div>
+ </div>
+ <div class="ixcell">
+   <div class="cpp"><div>B11</div><img src="https://lar5.com/cube/gif/v3.gif" alt=""><span>1/12</span><span>8%</span></div>
+   AntiSune + Allan
+   <div class="roofpig rpidx" data-config="base=X | alg=F' UZ F U F' U F B2 U R+L' B2 L+R' U B2"></div>
+ </div>
+ <div class="ixcell">
+   <div class="cpp"><div>B12</div><img src="https://lar5.com/cube/gif/h6.gif" alt=""><span>1/12</span><span>8%</span></div>
+   AntiSune + Allan
+   <div class="roofpig rpidx" data-config="base=X | alg=F' UZ F U F' U F L2 U' B+F' L2 F+B' U' L2"></div>
+ </div>
+</div>
+<p class="ix-intro"></p>
+<h4>Perfect sequences</h4>
+<div class="ixrow">
+ <div class="ixcell perfa">
+  <div class="cpp"><div>B3</div><img src="https://lar5.com/cube/gif/diag2.gif" alt=""><span>1/12</span><span>8%</span></div>
+   <div class="roofpig rpidx" data-config="base=X | alg=F' U2 F2 U F U F U' F' U' F2 U F"></div>
+ </div>
+ <div class="ixcell perfa">
+   <div class="cpp"><div>B4</div><img src="https://lar5.com/cube/gif/diag1.gif" alt=""><span>1/12</span><span>8%</span></div>
+   <div class="roofpig rpidx" data-config="base=X | alg=R U R' U R2 U R U R2 U' R' U' R2"></div>
+  </div>
+ <div class="ixcell perfa">
+   <div class="cpp"><div>B7</div><img src="https://lar5.com/cube/gif/h9.gif" alt=""><span>1/12</span><span>8%</span></div>
+   <div class="roofpig rpidx" data-config="base=X | alg=B2 U B' U B2 U2 B2 U B2 U B' U' B2"></div>
+  </div>
+ <div class="ixcell perfa">
+   <div class="cpp"><div>B8</div><img src="https://lar5.com/cube/gif/v12.gif" alt=""><span>1/12</span><span>8%</span></div>
+   <div class="roofpig rpidx" data-config="base=X | alg=L U' R U R2 D' F2 D R+L'"></div>
+  </div>
+</div>
+<div class="ixrow">
+ <div class="ixcell perfa">
+   <div class="cpp"><div>B9</div><img src="https://lar5.com/cube/gif/h3.gif" alt=""><span>1/12</span><span>8%</span></div>
+   <b>Benny</b>
+   <div class="roofpig rpidx" data-config="base=X | alg=R' U2 R2 U2 R2 U' R2 U' R2 U R"></div>
+  </div>
+ <div class="ixcell perfa">
+   <div class="cpp"><div>B10</div><img src="https://lar5.com/cube/gif/h12.gif" alt=""><span>1/12</span><span>8%</span></div>
+   <b>AntiBenny</b>
+   <div class="roofpig rpidx" data-config="base=X | alg=R U R2 U' R2 U' R2 U2 R2 U2 R'"></div>
+  </div>
+ <div class="ixcell perfa">
+   <div class="cpp"><div>B11</div><img src="https://lar5.com/cube/gif/v3.gif" alt=""><span>1/12</span><span>8%</span></div>
+   <div class="roofpig rpidx" data-config="base=X | alg=F'+B D L2 D' B2 U B U' F"></div>
+  </div>
+ <div class="ixcell perfa">
+   <div class="cpp"><div>B12</div><img src="https://lar5.com/cube/gif/h6.gif" alt=""><span>1/12</span><span>8%</span></div>
+   <div class="roofpig rpidx" data-config="base=X | alg=F2 U F U' F' U' F U2 F U' F2 U' F2"></div>
+  </div>
+</div>
+
+
+<h3 id="xC">Step 6+7 — Group C</h3>
+<div class="ix-group"><img class="ix-look" src="https://lar5.com/cube/gif/C.gif" alt="Corner look C"></div>
+<p class="ix-intro">This corner configuration occurs 4 times out of 27.
+  </p>
+<h4>Combinations</h4>
+<div class="ixrow">
+ <div class="ixcell">
+   <div class="cpp"><div>C1</div><img src="https://lar5.com/cube/gif/none.gif" alt=""><span>1/12</span><span>8%</span></div>
+   Sune + Sune
+   <div class="roofpig rpidx" data-config="base=X | alg=R U R' U R UZ R' L' U' L U' L' U2 L"></div>
+  </div>
+ <div class="ixcell">
+   <div class="cpp"><div>C2</div><img src="https://lar5.com/cube/gif/plus.gif" alt=""><span>1/12</span><span>8%</span></div>
+   Bruno + Sune
+   <div class="roofpig rpidx" data-config="base=X | alg=F U2 F2 U' F2 U' F2 U2 F B U B' U B UZ B'"></div>
+  </div>
+ <div class="ixcell">
+   <div class="cpp"><div>C3</div><img src="https://lar5.com/cube/gif/diag2.gif" alt=""><span>2/12</span><span>17%</span></div>
+   AntiSune + AntiSune
+   <div class="roofpig rpidx" data-config="base=X | alg=F' UZ F U F' U F2 U2 F' U' F U' F'"></div>
+  </div>
+ <div class="ixcell">
+   <div class="cpp"><div>C4</div><img src="https://lar5.com/cube/gif/v12.gif" alt=""><span>2/12</span><span>17%</span></div>
+   Sune + Rune
+   <div class="roofpig rpidx" data-config="base=X | alg=R' U' R U' R' U R U' R U R2 U R2 U2 R'"></div>
+  </div>
+</div>
+<div class="ixrow">
+ <div class="ixcell">
+   <div class="cpp"><div>C5</div><img src="https://lar5.com/cube/gif/h6.gif" alt=""><span>2/12</span><span>17%</span></div>
+   AntiSune + Sune
+   <div class="roofpig rpidx" data-config="base=X | alg=F' UZ F U F' U F L' U' L U' L' U2 L"></div>
+  </div>
+ <div class="ixcell">
+   <div class="cpp"><div>C6</div><img src="https://lar5.com/cube/gif/h3.gif" alt=""><span>2/12</span><span>17%</span></div>
+   Bruno + AntiSune
+   <div class="roofpig rpidx" data-config="base=X | alg=F U2 F2 U' F2 U' F2 U2 F R' UZ R U R' U R"></div>
+  </div>
+ <div class="ixcell">
+   <div class="cpp"><div>C7</div><img src="https://lar5.com/cube/gif/v3.gif" alt=""><span>2/12</span><span>17%</span></div>
+   Sune + AntiSune
+   <div class="roofpig rpidx" data-config="base=X | alg=R' U' R U' R' U2 R B' UZ B U B' U B"></div>
+  </div>
+</div>
+<h4>Perfect sequences</h4>
+<div class="ixrow">
+ <div class="ixcell perfa">
+   <div class="cpp"><div>C2</div><img src="https://lar5.com/cube/gif/plus.gif" alt=""><span>1/12</span><span>8%</span></div>
+   <div class="roofpig rpidx" data-config="base=X | alg=B U2 B2 U B' U B' U B' U B U2 B2 U' B2"></div>
+  </div>
+ <div class="ixcell perfa">
+   <div class="cpp"><div>C6</div><img src="https://lar5.com/cube/gif/h3.gif" alt=""><span>2/12</span><span>17%</span></div>
+   <div class="roofpig rpidx" data-config="base=X | alg=R U R2 U' R2 U' R2 U2 R U' R U' R'"></div>
+  </div>
+</div>
+
+
+<h3 id="xD">Step 6+7 — Group D</h3>
+<div class="ix-group"><img class="ix-look" src="https://lar5.com/cube/gif/D.gif" alt="Corner look D"></div>
+<p class="ix-intro">This corner configuration occurs 4 times out of 27.
+  <div style="font-style:italic; font-size:90%;">Thanks to Bernard Helmstetter for the D4 solution, and to Matthias Hunt for the D2.</p>
+  <h4>Combinations</h4>
+</div>
+<div class="ixrow">
+ <div class="ixcell">
+  <div class="cpp"><div>D1</div><img src="https://lar5.com/cube/gif/none.gif" alt=""><span>1/12</span><span>8%</span></div>
+  Sune + Sune (= C1)
+  <div class="roofpig rpidx" data-config="base=X | alg=F> D L D' L D LZ D' U' L' U L' U' L2 U F<"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>D2</div><img src="https://lar5.com/cube/gif/plus.gif" alt=""><span>1/12</span><span>8%</span></div>
+  AntiSune + Bruno
+  <div class="roofpig rpidx" data-config="base=X | alg=F' UZ F U F' U F B U2 B2 U' B2 U' B2 U2 B"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>D3</div><img src="https://lar5.com/cube/gif/diag2.gif" alt=""><span>2/12</span><span>17%</span></div>
+  Sune + Sune
+  <div class="roofpig rpidx" data-config="base=X | alg=F U F' U F UZ F2 U' F U' F' U2 F"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>D4</div><img src="https://lar5.com/cube/gif/v12.gif" alt=""><span>2/12</span><span>17%</span></div>
+  AntiSune + Sune
+  <div class="roofpig rpidx" data-config="base=X | alg=L' UZ L U L' U L F' U' F U' F' U2 F"></div>
+ </div>
+</div>
+<div class="ixrow">
+ <div class="ixcell">
+   <div class="cpp"><div>D5</div><img src="https://lar5.com/cube/gif/h6.gif" alt=""><span>2/12</span><span>17%</span></div>
+   Bruno + AntiSune
+   <div class="roofpig rpidx" data-config="base=X | alg=F' U2 F2 U F2 U F2 U2 F' B' UZ B U B' U B"></div>
+  </div>
+ <div class="ixcell">
+   <div class="cpp"><div>D6</div><img src="https://lar5.com/cube/gif/h3.gif" alt=""><span>2/12</span><span>17%</span></div>
+   Sune + Rune
+   <div class="roofpig rpidx" data-config="base=X | alg=F U F' U F UZ F'+B U B' U B' U' B2 U' B2 U2 B"></div>
+  </div>
+ <div class="ixcell">
+   <div class="cpp"><div>D7</div><img src="https://lar5.com/cube/gif/v3.gif" alt=""><span>2/12</span><span>17%</span></div>
+   Sune + AntiSune
+   <div class="roofpig rpidx" data-config="base=X | alg=F U F' U F UZ F' R U2 R' U' R U' R'"></div>
+  </div>
+</div>
+<h4>Perfect sequences</h4>
+<div class="ixrow">
+  <div class="ixcell perfa">
+    <div class="cpp"><div>D2</div><img src="https://lar5.com/cube/gif/plus.gif" alt=""><span>1/12</span><span>17%</span></div>
+    <div class="roofpig rpidx" data-config="base=X | alg=B2 U B2 U2 B' U' B U' B U' B U' B2 U2 B'"></div>
+  </div>
+  <div class="ixcell perfa">
+    <div class="cpp"><div>D5</div><img src="https://lar5.com/cube/gif/h6.gif" alt=""><span>2/12</span><span>17%</span></div>
+    <div class="roofpig rpidx" data-config="base=X | alg=L U2 L2 U' L2 U' L' U L' U' L U L' U L"></div>
+  </div>
+  <div class="ixcell perfa">
+    <div class="cpp"><div>D6</div><img src="https://lar5.com/cube/gif/h3.gif" alt=""><span>2/12</span><span>17%</span></div>
+    <div class="roofpig rpidx" data-config="base=X | alg=B' U' B U' B U2 B2 U' B2 U' B2 U B"></div>
+  </div>
+</div>
+
+
+<h3 id="xE">Step 6+7 — Group E</h3>
+<div class="ix-group"><img class="ix-look" src="https://lar5.com/cube/gif/E.gif" alt="Corner look E"></div>
+<p class="ix-intro">This corner configuration occurs 4 times out of 27.
+  </p>
+<h4>Combinations</h4>
+<div class="ixrow">
+ <div class="ixcell">
+   <div class="cpp"><div>E1</div><img src="https://lar5.com/cube/gif/none.gif" alt=""><span>1/12</span><span>8%</span></div>
+   1+Sune + Sune+1 (C1)
+   <div class="roofpig rpidx" data-config="base=X | alg=B R U R' U R UZ R' L' U' L U' L' U2 L B'"></div>
+  </div>
+ <div class="ixcell">
+   <div class="cpp"><div>E2</div><img src="https://lar5.com/cube/gif/plus.gif" alt=""><span>1/12</span><span>8%</span></div>
+   Triple Sune
+   <div class="roofpig rpidx" data-config="base=X | alg=B' U' B U' B' U B U' B' U B U' B' U2 B"></div>
+  </div>
+ <div class="ixcell">
+   <div class="cpp"><div>E3</div><img src="https://lar5.com/cube/gif/diag2.gif" alt=""><span>1/12</span><span>8%</span></div>
+   AntiSune + Sune
+   <div class="roofpig rpidx" data-config="base=X | alg=R U2 R' U' R U' R' L U L' U L UZ L'"></div>
+  </div>
+ <div class="ixcell">
+   <div class="cpp"><div>E4</div><img src="https://lar5.com/cube/gif/diag1.gif" alt=""><span>1/12</span><span>8%</span></div>
+   Sune + AntiSune
+   <div class="roofpig rpidx" data-config="base=X | alg=R U R' U R UZ R' L U2 L' U' L U' L'"></div>
+  </div>
+</div>
+<div class="ixrow">
+ <div class="ixcell">
+   <div class="cpp"><div>E5</div><img src="https://lar5.com/cube/gif/v3.gif" alt=""><span>2/12</span><span>17%</span></div>
+   Sune + Rune
+   <div class="roofpig rpidx" data-config="base=X | alg=F' U' F U' F' U2 F R' U' R U' R U R2 U R2 U2 R'"></div>
+  </div>
+ <div class="ixcell">
+   <div class="cpp"><div>E6</div><img src="https://lar5.com/cube/gif/h9.gif" alt=""><span>2/12</span><span>17%</span></div>
+   Sune + Sune
+   <div class="roofpig rpidx" data-config="base=X | alg=R U R' U R UZ R' B' U' B U' B' U2 B"></div>
+  </div>
+ <div class="ixcell">
+   <div class="cpp"><div>E7</div><img src="https://lar5.com/cube/gif/v9.gif" alt=""><span>2/12</span><span>17%</span></div>
+   AntiSune + AntiSune
+   <div class="roofpig rpidx" data-config="base=X | alg=F' UZ F U F' U F L U2 L' U' L U' L'"></div>
+  </div>
+ <div class="ixcell">
+   <div class="cpp"><div>E8</div><img src="https://lar5.com/cube/gif/h3.gif" alt=""><span>2/12</span><span>17%</span></div>
+   Sune + Double Sune
+   <div class="roofpig rpidx" data-config="base=X | alg=L U L' U L UZ L' R' U' R U' R' U R U' R' U2 R"></div>
+  </div>
+</div>
+<h4>Perfect sequences</h4>
+<div class="ixrow">
+ <div class="ixcell perfa">
+   <div class="cpp"><div>E1</div><img src="https://lar5.com/cube/gif/none.gif" alt=""><span>1/12</span><span>8%</span></div>
+   <div class="roofpig rpidx" data-config="base=X | alg=L B' D2 B L' U2 L B' D2 B L'"></div>
+  </div>
+ <div class="ixcell perfa">
+   <div class="cpp"><div>E5</div><img src="https://lar5.com/cube/gif/v3.gif" alt=""><span>2/12</span><span>17%</span></div>
+   <div class="roofpig rpidx" data-config="base=X | alg=L U2 L U L2 U L' U' L U L' U2 L' U L'"></div>
+  </div>
+ <div class="ixcell perfa">
+   <div class="cpp"><div>E8</div><img src="https://lar5.com/cube/gif/h3.gif" alt=""><span>2/12</span><span>17%</span></div>
+   <div class="roofpig rpidx" data-config="base=X | alg=B2 U' B U' B U B' U B U B' U' B' U B2"></div>
+  </div>
+</div>
+
+
+<h3 id="xF">Step 6+7 — Group F</h3>
+<div class="ix-group"><img class="ix-look" src="https://lar5.com/cube/gif/F.gif" alt="Corner look F"></div>
+<p class="ix-intro">This corner configuration occurs 2 times out of 27.
+  </p>
+<h4>Combinations</h4>
+<div class="ixrow">
+ <div class="ixcell">
+  <div class="cpp"><div>F1</div><img src="https://lar5.com/cube/gif/none.gif" alt=""><span>1/12</span><span>8%</span></div>
+  Double Sune + Allan
+  <div class="roofpig rpidx" data-config="base=X | alg=R U R' U R U' R' U R UZ R' B2 U' R+L' B2 L+R' U' B2"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>F2</div><img src="https://lar5.com/cube/gif/plus.gif" alt=""><span>1/12</span><span>8%</span></div>
+  Sune + AntiSune
+  <div class="roofpig rpidx" data-config="base=X | alg=R U R' U R UZ R' F' UZ F U F' U F"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>F3</div><img src="https://lar5.com/cube/gif/diag1.gif" alt=""><span>2/12</span><span>17%</span></div>
+  AntiSune + Sune
+  <div class="roofpig rpidx" data-config="base=X | alg=B' UZ B U B' U B L U L' U L UZ L'"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>F4</div><img src="https://lar5.com/cube/gif/v3.gif" alt=""><span>4/12</span><span>33%</span></div>
+  Double AntiSune
+  <div class="roofpig rpidx" data-config="base=X | alg=F' UZ F U F' U' F U F' U F"></div>
+ </div>
+ <div class="ixcell">
+  <div class="cpp"><div>F5</div><img src="https://lar5.com/cube/gif/v6.gif" alt=""><span>4/12</span><span>33%</span></div>
+  Double Sune
+  <div class="roofpig rpidx" data-config="base=X | alg=R U R' U R U' R' U R UZ R'"></div>
+ </div>
+</div>
+<h4>Perfect sequences</h4>
+<div class="ixrow">
+ <div class="ixcell perfa">
+  <div class="cpp"><div>F1</div><img src="https://lar5.com/cube/gif/none.gif" alt=""><span>1/12</span><span>8%</span></div>
+  <div class="roofpig rpidx" data-config="base=X | alg=B U B2 U' B2 U' B U2 B U2 B U' B2 U' B2 U B"></div>
+ </div>
+ <div class="ixcell perfa">
+  <div class="cpp"><div>F3</div><img src="https://lar5.com/cube/gif/diag1.gif" alt=""><span>2/12</span><span>17%</span></div>
+  <div class="roofpig rpidx" data-config="base=X | alg=B U2 B2 U2 B' U2 B U2 B' U2 B2 U2 B"></div>
+ </div>
+</div>
+
+
+<h3 id="xG">Step 6+7 — Group G</h3>
+<div class="ix-group"><img class="ix-look" src="https://lar5.com/cube/gif/G.gif" alt="Corner look G"></div>
+<p class="ix-intro">This corner configuration occurs 4 times out of 27.
+  </p>
+<h4>Combinations</h4>
+<div class="ixrow">
+ <div class="ixcell">
+   <div class="cpp"><div>G1</div><img src="https://lar5.com/cube/gif/none.gif" alt=""><span>1/12</span><span>8%</span></div>
+   Bruno + Allan
+   <div class="roofpig rpidx" data-config="base=X | alg=R U2 R2 U' R2 U' R2 U2 R F2 U' R'+L F2 L'+R U' F2"></div>
+  </div>
+ <div class="ixcell">
+   <div class="cpp"><div>G2</div><img src="https://lar5.com/cube/gif/plus.gif" alt=""><span>1/12</span><span>8%</span></div>
+   Niklas + Niklas
+   <div class="roofpig rpidx" data-config="base=X | alg=F' U B U' F U BZ U F U' B U F'"></div>
+  </div>
+ <div class="ixcell">
+   <div class="cpp"><div>G3</div><img src="https://lar5.com/cube/gif/diag2.gif" alt=""><span>2/12</span><span>17%</span></div>
+   Sune + Sune
+   <div class="roofpig rpidx" data-config="base=X | alg=R U R' U R UZ R' F U F' U F UZ F'"></div>
+  </div>
+ <div class="ixcell">
+   <div class="cpp"><div>G4</div><img src="https://lar5.com/cube/gif/h6.gif" alt=""><span>2/12</span><span>17%</span></div>
+   <b>Bruno</b>
+   <div class="roofpig rpidx" data-config="base=X | alg=R U2 RZ U' R2 U' RZ U2 R"></div>
+  </div>
+</div>
+<div class="ixrow">
+ <div class="ixcell">
+   <div class="cpp"><div>G5</div><img src="https://lar5.com/cube/gif/h9.gif" alt=""><span>2/12</span><span>17%</span></div>
+   Sune + Rune
+   <div class="roofpig rpidx" data-config="base=X | alg=B U B' U B UZ B' R' U' R U' R U R2 U R2 U2 R'"></div>
+  </div>
+ <div class="ixcell">
+   <div class="cpp"><div>G6</div><img src="https://lar5.com/cube/gif/v9.gif" alt=""><span>2/12</span><span>17%</span></div>
+   Bruno + Allan
+   <div class="roofpig rpidx" data-config="base=X | alg=R U2 R2 U' R2 U' R2 U2 R' U' B' F R2 F'+B U' R2"></div>
+  </div>
+ <div class="ixcell">
+   <div class="cpp"><div>G7</div><img src="https://lar5.com/cube/gif/h12.gif" alt=""><span>2/12</span><span>17%</span></div>
+   Sune + AntiSune
+   <div class="roofpig rpidx" data-config="base=X | alg=B U B' U B UZ BZ UZ B U B' U B"></div>
+  </div>
+</div>
+<h4>Perfect sequences</h4>
+<div class="ixrow">
+ <div class="ixcell perfa">
+   <div class="cpp"><div>G1</div><img src="https://lar5.com/cube/gif/none.gif" alt=""><span>1/12</span><span>8%</span></div>
+   <div class="roofpig rpidx" data-config="base=X | alg=B U2 B' U' B U B2 U2 B2 U B2 U B2 U' B'"></div>
+  </div>
+ <div class="ixcell perfa">
+   <div class="cpp"><div>G3</div><img src="https://lar5.com/cube/gif/diag2.gif" alt=""><span>2/12</span><span>17%</span></div>
+   <div class="roofpig rpidx" data-config="base=X | alg=R' U2 R2 U R' U R U2 R' U' R' U R"></div>
+  </div>
+ <div class="ixcell perfa">
+   <div class="cpp"><div>G5</div><img src="https://lar5.com/cube/gif/h9.gif" alt=""><span>2/12</span><span>17%</span></div>
+   <div class="roofpig rpidx" data-config="base=X | alg=R U2 R2 U' R2 U R2 U2 R B F' U2 B' F"></div>
+  </div>
+ <div class="ixcell perfa">
+   <div class="cpp"><div>G6</div><img src="https://lar5.com/cube/gif/v9.gif" alt=""><span>2/12</span><span>17%</span></div>
+   <div class="roofpig rpidx" data-config="base=X | alg=F'+B L2 B' F L U2 L2 U' L2 U L2 U2 L'"></div>
+  </div>
+</div>
+
 </section>
 
 
@@ -1102,10 +2066,18 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 <section class="page-section" id="examples">
 <h2 class="section-title">13 Annotated Solutions</h2>
 
-<p>The positions are random ones taken from the Sunday competition for the Yahoo Speed Cubing club on Nov 25 2001. These are not speed solutions — each took several minutes of careful study. All based on what I can see and think ahead about when looking at a position.</p>
+<p>I hope this will provide the kind of understanding that disjointed theory steps can not. Like how I actually think when solving, what the considerations are, how much I can and can't see ahead, etc. The positions are random ones taken from the Sunday competition for the Yahoo Speed Cubing club on Nov 25 2001. This is of course not speed solutions. Each took me several minutes, and I think hard and study the cube very carefully for each turn. What I did not do was to try out several different options to see which one would lead to the best solution in the end. It's all based on what I can see and think ahead about when looking at a position. Sometimes I did check what alternatives would have resulted in afterwards, as you can see.</p>
+<p>You can follow this fairly well by looking at the animations. I recommend stepping one turn at the time, and turning the cube around a lot (click and drag on the cube) to see where the pieces are. But the best way is to get the same position on your own cube, and go through the solutions there. You can do that by stepping backwards from the solved position, but I prefer taking the cube apart and putting it back together in the right state.</p>
+
+<p>A few observations from doing this page:</p>
+<ul>
+  <li>In the final turn of S2, I always check if I can flip a bad edge before or during it. About half the time I do. This is something I learned while going for few moves, but it's even more useful for speed cubing, since you can see and act on it immediately. You can see this in examples 4, 5, 6, 7, 8, 10 and 12.</li>
+  <li>One position that comes up a few times is the one below. Let's call it "Broken corner". It's very useful in S4, but also in S1 and S2. It's well worth memorizing. It's in examples 2 and 4.</li>
+  <li>Surprisingly, for 7 of the 13, I solve S1+S2 in one go, instead of doing S1 and S2 separately. For most of them I didn't do that because it looked so good, but because the S1 situation looked so bad. Still the S1+2 solutions averaged 9.2 moves vs 11.5 for the normal cases, even though they started out from a worse position. Maybe that's coincidence. But I doubt it. When speeding I don't do nearly as much S1+2 starts. They're often far too complicated to plan out in 15 seconds.</li>
+</ul>
 
 <div class="ruta">
-  <strong>The "Broken corner" position</strong> — very useful in S4 but also in S1 and S2. Worth memorising. It comes up in examples 2 and 4.
+  <strong>The "Broken corner" position</strong>
   <div class="cube-row" style="margin-top:10px;">
     <div class="cube-widget">
       <div class="roofpig rp140" data-config="solved=UR-| colored=U UR URB UB| tweaks=L:R| alg=U R U' R| colors=U:g R:o B:w L:r"></div>
@@ -1114,17 +2086,25 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
   </div>
 </div>
 
-<p><strong>Acronyms:</strong> T1–7 = Turn 1–7 &nbsp;·&nbsp; YB edge = Yellow-Blue edge &nbsp;·&nbsp; BWO corner = Blue-White-Orange corner &nbsp;·&nbsp; RY/B pair = Red-Yellow edge and Red-Yellow-Blue corner &nbsp;·&nbsp; [P13/3] = The perfect solution is 13 turns and would save 3 turns.</p>
+<p><strong>Acronyms etc:</strong></p>
+<ul>
+  <li><strong>T1–7</strong> = Turn 1–7</li>
+  <li><strong>YB edge</strong> = Yellow-Blue edge</li>
+  <li><strong>BWO corner</strong> = Blue-White-Orange corner</li>
+  <li><strong>RY/B pair</strong> = Red-Yellow edge and Red-Yellow-Blue corner</li>
+  <li><strong>[P13/3]</strong> = The perfect solution is 13 turns, and would save 3 turns. I don't use it since I don't know it.</li>
+  <li><strong><span class="merged">T17</span></strong> = When I merge the final turn(s) of one step with the first in the next, I indicate that with <strong><span class="merged">blue</span></strong> turn counters. I hope it's not too confusing that some steps never seem to get completed. They are complete in my head!</li>
+</ul>
 
 <h3>Example 1</h3>
 <ul>
-  <li><strong>T1–7. S1.</strong> Several 7-turn corners available.</li>
+  <li><strong>T1–7. S1.</strong> Several 7 turn corners available. I could easily start with another.</li>
   <li><strong>T8–10. S2.</strong> The BWO corner is the obvious choice, but BYR is also excellent.</li>
-  <li><strong>T11–15. S3.</strong> 4 bad edges.</li>
-  <li><strong>T16–24. S4.</strong> A simple S4 with no real choices except at T21.</li>
-  <li><strong>T25</strong> makes it easier to see the corners. [P13/3]</li>
-  <li><strong>T26–33. S5+6.</strong></li>
-  <li><strong>T33–41. S7.</strong> Arne (A2).</li>
+  <li><strong>T11–15. S3.</strong> 4 bad edges. It's tempting to try to preserve the RY/B and/or OG/Y pairs, but it's rarely worth it. I just go straight for the bad edges.</li>
+  <li><strong>T16–24. S4.</strong> A simple S4 with no real choices except in T21, where you can pick either of 2 options. The other leads to a 44 move solution the way I usually do it.</li>
+  <li><strong>T25 </strong>makes it easier to see the corners. <strong>[P13/3]</strong></li>
+  <li><strong>T26–<span class="merged">33</span> S5+6</strong> is a fundamental move to solve S5–6 for this corner config</li>
+  <li><strong><span class="merged">T33</span>–41 S7</strong> <a href="#xA">Arne (A2)</a></li>
 </ul>
 <div class="cube-row">
   <div class="cube-widget">
@@ -1135,11 +2115,11 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 <h3>Example 2</h3>
 <ul>
   <li><strong>T1–4. S1.</strong> The existing BW/O pair makes this the obvious start.</li>
-  <li><strong>T5–10. S2.</strong> The BYO corner is a little easier than the other two.</li>
-  <li><strong>T11–15. S3.</strong> 2 ways to fix in 5 moves.</li>
-  <li><strong>T16–29. S4.</strong> Nothing too obvious — go for the GOW "broken corner".</li>
+  <li><strong>T5–10. S2.</strong> The BYO corner is a little easier than the other two</li>
+  <li><strong>T11–15. S3.</strong> There are 2 ways to fix these bad edges in 5 moves. They look equally good to me. I pick one on random.</li>
+  <li><strong>T16–29. S4.</strong> Nothing too obvious here, so I go for the GOW <a href="#blox">"broken corner"</a>.</li>
   <li><strong>T30</strong> makes it easier to see the corners.</li>
-  <li><strong>T31–40. S6+7.</strong> (no S5) Bruno (G4).</li>
+  <li><strong>T31–40 S6+7.</strong> (no S5) <a href="#xG">Bruno (G4)</a></li>
 </ul>
 <div class="cube-row">
   <div class="cube-widget">
@@ -1149,12 +2129,12 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 
 <h3>Example 3</h3>
 <ul>
-  <li><strong>T1–8. S1+2.</strong> The RY/B pair gives an obvious starting point. Luckily it also forms the OY/B pair, and with some unusual moves both S1 and S2 can be fixed simultaneously.</li>
-  <li><strong>T9–13. S3.</strong></li>
-  <li><strong>T14–20. S4.</strong></li>
-  <li><strong>T21–27. S5–6.</strong> Solved with a Niklas.</li>
+  <li><strong>T1–8. S1+2</strong> The RY/B pair gives an obvious starting point. Luckily, that also forms the OY/B pair, and with some unusual moves I can fix both S1 and S2 simultaneously. If you pick a half turn instead of the quarter turn in T6, you get the beautiful solution in the second cube (uses perfect <a href="#xB">B4</a>), but that's hardly possible to see then.</li>
+  <li><strong>T9–13. S3.</strong> With both the BW/R and OW/R pairs already formed, you'd think there was some clever way to do S3 and S4 in one sweep, but I can't figure one out. So I just fix the edges without breaking the pairs.</li>
+  <li><strong>T14–20. S4.</strong> It's too hard to preserve both blue pairs. I just do the simple one, luckily, the other falls right into place.</li>
+  <li><strong>T21–27 S5–6.</strong> is solved with a <a href="#step5">Niklas</a>. The perfect FL solution is 12 moves, 4–5 moves faster.</li>
   <li><strong>T28</strong> colour adjustment.</li>
-  <li><strong>T29–37. S7.</strong> Allan (A4).</li>
+  <li><strong>T29–37 S7.</strong> <a href="#xA">Allan (A4)</a></li>
 </ul>
 <div class="cube-row">
   <div class="cube-widget">
@@ -1168,12 +2148,12 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 
 <h3>Example 4</h3>
 <ul>
-  <li><strong>T1–9. S1+2.</strong> Pick the GO/W pair — the first turn also forms the GR/W pair. Some original thinking lets us do both S1 &amp; S2 at once.</li>
-  <li><strong>T9–15. S3.</strong> 2 bad edges left after.</li>
-  <li><strong>T16–26. S4.</strong> GRY is a "broken corner".</li>
+  <li><strong>T1–<span class="merged">9</span>. S1+2</strong> There are two good pairs to start from. I pick the GO/W, since the first turn also forms the GR/W pair. Some original thinking lets us do both S1 & S2 at once.</li>
+  <li><strong><span class="merged">T9</span>–15 S3.</strong> 2 bad edges left after.</li>
+  <li><strong>T16–26. S4</strong> GRY is a <a href="#blox">"broken corner"</a>.</li>
   <li><strong>T27</strong> colour adjustment.</li>
-  <li><strong>T28–34. S5.</strong> A Niklas does S5 and sets up corners in Sune position.</li>
-  <li><strong>T35–41. S7.</strong> Sune (B5). [P11/3]</li>
+  <li><strong>T28–34 S5.</strong> A <a href="#step5">Niklas</a> does S5 and sets up the corners in Sune position. Niklas twists corners like Sune, so the "target" rules from <a href="#step6">S6</a> apply.</li>
+  <li><strong>T35–41 S7.</strong> I end with a <a href="#xB">Sune (B5)</a> <strong>[P11/3]</strong></li>
 </ul>
 <div class="cube-row">
   <div class="cube-widget">
@@ -1183,11 +2163,11 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 
 <h3>Example 5</h3>
 <ul>
-  <li><strong>T1–5. S1.</strong> YOB is the only decent corner to start with.</li>
-  <li><strong>T6–12. S2.</strong> All 3 corners suck — BWO looks a little more fun.</li>
-  <li><strong>T12–20. S3.</strong></li>
-  <li><strong>T21–31. S4.</strong></li>
-  <li><strong>T31–40. S7.</strong> (No S5 or S6) Allan (A4).</li>
+  <li><strong>T1–5. S1.</strong> Despite WO/G being done, it needs 7 moves. YOB is the only decent corner to start with.</li>
+  <li><strong>T6–<span class="merged">12</span>. S2.</strong> All 3 corners suck. BWO looks a little more fun.</li>
+  <li><strong><span class="merged">T12</span>–20 S3.</strong> There are 4 equally good ways to do T17. One day I might show all four here.</li>
+  <li><strong>T21–31 S4.</strong> All the other corners look downright hostile, so I start with the RYB one (OK, OYG has some promise too). T25 is key! Forming RW/B midway is unusual, but works great here.</li>
+  <li><strong>T31–40 S7.</strong> (No S5 or S6) <a href="#xA">Allan (A4)</a>. A great ending of a problematic solve. Bypassing S5 & S6 is just luck. I'm not <strong>that</strong> good!</li>
 </ul>
 <div class="cube-row">
   <div class="cube-widget">
@@ -1197,11 +2177,11 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 
 <h3>Example 6</h3>
 <ul>
-  <li><strong>T1–9. S1+2.</strong> The GO/Y pair is "stuck" — start for the GOW corner instead, while preserving the pair.</li>
-  <li><strong>T9–14. S3.</strong></li>
-  <li><strong>T15–27. S4.</strong></li>
-  <li><strong>T28–34. S5+6.</strong> Niklas.</li>
-  <li><strong>T35–43. S7.</strong> Allan (A4).</li>
+  <li><strong>T1–<span class="merged">9</span>. S1+2.</strong> The GO/Y pair is "stuck", so I start for the GOW corner instead, while preserving the pair. With some very careful manoeuvring in T4&amp;T5 it all falls in place very nicely.</li>
+  <li><strong><span class="merged">T9</span>–14. S3.</strong> I pick a half turn in T10 to preserve the RW/G pair</li>
+  <li><strong>T15–27 S4.</strong> GRW is the obvious corner for S4a. I make sure to split up the malformed GR/Y pair while building GRW. For T24 I can pick one of two turns, and do the one that gives a better corner configuration.</li>
+  <li><strong>T28–34 S5+6.</strong> <a href="#step5">Niklas</a></li>
+  <li><strong>T35–43 S7.</strong> <a href="#xA">Allan (A4)</a></li>
 </ul>
 <div class="cube-row">
   <div class="cube-widget">
@@ -1211,11 +2191,11 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 
 <h3>Example 7</h3>
 <ul>
-  <li><strong>T1–12. S1+2.</strong> Only bad corners here. 12 moves is good for such a bad start.</li>
-  <li><strong>T12–19. S3.</strong> 6 bad edges needs 7 moves.</li>
-  <li><strong>T20–33. S4.</strong></li>
-  <li><strong>T34–41. S5+6.</strong></li>
-  <li><strong>T41–52. S7.</strong> Bert (A3).</li>
+  <li><strong>T1–<span class="merged">12</span>. S1+2.</strong> Only bad corners here. The WO/B pair is awkwardly placed. The best I can come up with is to do the YOB corner, while preserving the WO/B pair, and try to keep things together. 12 moves is good for such a bad start.</li>
+  <li><strong><span class="merged">T12</span>–19. S3.</strong> 6 bad edges needs 7 moves. The third move you can go two ways, but I can't say which one is better.</li>
+  <li><strong>T20–33 S4.</strong> One of the 4 corners is slightly less bad than the other 3. In T20 I choose the move that separates the misformed BR/Y pair. In T30 I can go two ways. They look equally good (the other also ends in 52, but I didn't know that)</li>
+  <li><strong>T34–41 S5+6.</strong> This handy move solves this corner configuration for S5+6.</li>
+  <li><strong>T41–52 S7.</strong> <a href="#xA">Bert (A3)</a>.</li>
 </ul>
 <div class="cube-row">
   <div class="cube-widget">
@@ -1225,12 +2205,12 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 
 <h3>Example 8</h3>
 <ul>
-  <li><strong>T1–7. S1.</strong> This one was painful! Best I can find is this 7-mover for OYG.</li>
-  <li><strong>T8–10. S2.</strong></li>
-  <li><strong>T10–12. S3.</strong> Only 2 bad edges.</li>
-  <li><strong>T13–24. S4.</strong></li>
-  <li><strong>T25–31. S5.</strong> Niklas.</li>
-  <li><strong>T32–41. S6+7.</strong> Bruno (G4).</li>
+  <li><strong>T1–7. S1.</strong> This one was painful! The GW/R pair looks great, but can't be completed in under 8 moves. The others don't look any better. The best I can find is this 7 mover for OYG</li>
+  <li><strong>T8–<span class="merged">10</span>. S2.</strong> I kept an eye at WOG during S1, and made sure it was in good position. T5 was key.</li>
+  <li><strong><span class="merged">T10</span>–12 S3.</strong> Only 2 bad edges.</li>
+  <li><strong>T13–24 S4.</strong> YBO is the obvious choice for S4a. Very standard S4b move.</li>
+  <li><strong>T25–31 S5.</strong> Maybe my least favourite corner config. There's a 13 turn S5+6 sequence that I don't know... So I do a <a href="#step5">Niklas</a>.</li>
+  <li><strong>T32–41 S6+7.</strong> A lucky <a href="#xG">Bruno (G4)</a>. These can go much worse.</li>
 </ul>
 <div class="cube-row">
   <div class="cube-widget">
@@ -1240,11 +2220,11 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 
 <h3>Example 9</h3>
 <ul>
-  <li><strong>T1–6. S1+2.</strong> GO/Y looks like the perfect start, but you can build GR/Y first while keeping GO/Y intact, and do S1+2 as fast as S1 alone.</li>
-  <li><strong>T7–12. S3.</strong></li>
-  <li><strong>T13–23. S4.</strong></li>
-  <li><strong>T23–32. S5+6.</strong> One of the 2 diagonal corner swaps I know.</li>
-  <li><strong>T32–40. S7.</strong> Arne (A2).</li>
+  <li><strong>T1–6. S1+2.</strong> GO/Y <em>looks</em> like the perfect start, but if you look more you see that you can build GR/Y first, while keeping the GO/Y pair intact, and do S1+2 as fast as you could do just S1 with GO/Y.</li>
+  <li><strong>T7–12. S3.</strong> In T10 I can go two ways, this one is best for the RGW corner</li>
+  <li><strong>T13–23 S4.</strong> Both RGW and BOY look good. RGW is 2 moves shorter.</li>
+  <li><strong>T23–32 S5+6.</strong> One of the 2 diagonal corner swaps I know.</li>
+  <li><strong>T32–40 S7.</strong> <a href="#xA">Arne (A2)</a></li>
 </ul>
 <div class="cube-row">
   <div class="cube-widget">
@@ -1254,12 +2234,15 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 
 <h3>Example 10</h3>
 <ul>
-  <li><strong>T1–7. S1.</strong> One of several 7-move options.</li>
-  <li><strong>T8–14. S2.</strong></li>
-  <li><strong>T14–18. S3.</strong></li>
-  <li><strong>T19–31. S4.</strong></li>
-  <li><strong>T32–39. S5+6.</strong> My standard move for this corner position.</li>
-  <li><strong>T39–51. S7.</strong> Bert (A3).</li>
+  <li><strong>T1–7. S1.</strong> One of several 7 move options.</li>
+  <li><strong>T8–<span class="merged">14</span> S2.</strong> One of several mediocre options.</li>
+  <li><strong><span class="merged">T14</span>–18 S3.</strong> The only way.</li>
+  <li><strong>T19–23 S4a.</strong> RGW looks slightly better than the others</li>
+  <li><strong>T20</strong> Quarter turn instead of half turn to break up the problematic RB/W pair.</li>
+  <li><strong>T28</strong> Half turn instead of quarter turn gives better final layer position</li>
+  <li><strong>T24–31 S4b.</strong> Simple standard move that uses many turns.</li>
+  <li><strong>T32–<span class="merged">39</span> S5+6.</strong> My standard move for this corner position.</li>
+  <li><strong><span class="merged">T39</span>–51 S7.</strong> <a href="#xA">Bert (A3)</a></li>
 </ul>
 <div class="cube-row">
   <div class="cube-widget">
@@ -1269,10 +2252,10 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 
 <h3>Example 11</h3>
 <ul>
-  <li><strong>T1–10. S1+2.</strong> RWG and OWG are the corners to go for.</li>
-  <li><strong>T11–18. S3.</strong> 3 moves longer than needed to preserve 2 pairs.</li>
-  <li><strong>T19–25. S4.</strong></li>
-  <li><strong>T26–36. S5+6+7.</strong> Niklas plus Sune (B5). 7 + 7 = 11 when the sequences melt together. [P10/1]</li>
+  <li><strong>T1–10. S1+2.</strong> It's clear that RWG and OWG are the corners to go for. How to get there quickest is trickier. There may be a shorter solution.</li>
+  <li><strong>T11–18 S3.</strong> 3 moves longer than needed to preserve the 2 pairs. It seems worth it.</li>
+  <li><strong>T19–25 S4.</strong> The pairs work. I primarily build on the RWB trio, but the RY/G pair gets nicely built up using the same moves.</li>
+  <li><strong>T26–36 S5+6+7.</strong> Well known <a href="#step5">Niklas</a> plus <a href="#xB">Sune (B5)</a> case. 7 + 7 = 11 when the sequences melt together. <strong>[P10/1]</strong>.</li>
 </ul>
 <div class="cube-row">
   <div class="cube-widget">
@@ -1282,11 +2265,11 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 
 <h3>Example 12</h3>
 <ul>
-  <li><strong>T1–7. S1.</strong> BRY is one of several 7-move solutions.</li>
-  <li><strong>T8–13. S2.</strong> BRW is the least bad alternative.</li>
-  <li><strong>T13–20. S3.</strong></li>
-  <li><strong>T21–31. S4.</strong> GRY looks best.</li>
-  <li><strong>T32–45. S6+7.</strong> No S5. G3. [P12/2]</li>
+  <li><strong>T1–7. S1.</strong> BRY is one of several 7 move solutions.</li>
+  <li><strong>T8–<span class="merged">13</span> S2.</strong> BRW is the least bad alternative.</li>
+  <li><strong><span class="merged">T13</span>–20 S3.</strong> I have to work for it here too.</li>
+  <li><strong>T21–31 S4.</strong> GRY looks best.</li>
+  <li><strong>T32–45 S6+7.</strong> No S5. <a href="#xG">G3</a>. <strong>[P12/2]</strong></li>
 </ul>
 <div class="cube-row">
   <div class="cube-widget">
@@ -1296,12 +2279,12 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 
 <h3>Example 13</h3>
 <ul>
-  <li><strong>T1–10. S1+2.</strong> A few 6-turn corners. Midway I decided to do S1+S2. T5–6 sets up S2 in mid S1.</li>
-  <li><strong>T11–15. S3.</strong> Textbook S3.</li>
-  <li><strong>T16–28. S4.</strong></li>
-  <li><strong>T29</strong> colour adjustment.</li>
-  <li><strong>T30–40. S5+6.</strong> My standard move for this corner position. [P13/6]</li>
-  <li><strong>T40–48. S7.</strong> Allan (A4).</li>
+  <li><strong>T1–10. S1+2.</strong> A few 6 turn corners. I picked one at random. Midway I decided to do S1+S2. T5–6 sets up S2 in mid S1.</li>
+  <li><strong>T11–15 S3.</strong> <a href="#eo4">Textbook S3</a>.</li>
+  <li><strong>T16–28 S4.</strong> No easy pickings. I do the easiest corner the hard way.</li>
+  <li><strong>T29 </strong>Colour adjustment</li>
+  <li><strong>T30–40 S5+6.</strong> My standard move for this corner position. <strong>[P13/6]</strong> (131).</li>
+  <li><strong>T40–48 S7.</strong> <a href="#xA">Allan (A4)</a></li>
 </ul>
 <div class="cube-row">
   <div class="cube-widget">
@@ -1310,6 +2293,83 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
 </div>
 
 <div class="note">Averages for 13 solutions: S1+S2 = 10.2 turns · S3 = 5.6 turns · S4 = 11.3 turns · S5–7 = 15.4 turns · <strong>Total = 42.5 turns</strong></div>
+</section>
+
+
+<!-- ══ PHYSICAL ══════════════════════════════════════════════════ -->
+<section class="page-section" id="physical">
+<h2 class="section-title">How to Get Really Fast — the Physical Side</h2>
+
+<p>Though the mental side may be the most interesting, there is also a strong physical side to speed cubing. You need a good cube and fast fingers, to have any chance of achieving world class speed!</p>
+
+<h3>The cube itself</h3>
+<p>These days it's hard to find a bad cube. A cube you find at a regular retailer is most likely a good speed cube.</p>
+<p>Springs in the "skeleton" are vital to quality cubing. You can sense if there is one by pulling on a layer. It should have a "springy" give of 1 millimetre or so. New cubes can be tight and hard to pull apart, but it's still a different feel than a springless cube. Do <strong>NOT</strong> buy a springless cube! Modern cubes are mostly built so you can't get to the springs and adjust them, which is a shame. The exception are the DIY cubes you can order from rubiks.com and other places. Not that it's a must have at all, but you can get slightly better results by adjusting the spring tensions, and even replacing broken springs.</p>
+<p>Though some cubes can get pretty good without treatment, I recommend that you lube it. Many lubricants work. I used candle wax first. It works fine, except that it needs to be reapplied twice a week. Later I turned to silicone spray, which works for months. It is what all speed cubers use these days. You can get it cheaply at any automotive store.</p>
+<p>One weird thing with the silicone spray is that when you first apply it, on some cubes, it will act almost like glue, and will be very hard to turn for about a minute or two, and only after that will it be easy to turn.</p>
+<p>In the 1981 Swedish championships, the cubes were silicone treated, but not "broken in", so we only got about half our normal speed. I won with 40.43 sec…</p>
+<p>The cubes I can find now (made by Oddzon <a href="http://www.amazon.com/exec/obidos/ASIN/B00000JD5S/solvingrubikscub" target="_blank">(buy here)</a>) are good and fast mechanically, but have horrid paper stickers (under a thin plastic membrane) that wear out in no time. Some people paint them when the stickers are gone. I use regular coloured vinyl film. It works fine, once you've found 6 colours of film. And you get enough vinyl for a 1000 cubes :-) These days you can even order high quality replacement stickers from <a href="http://cubesmith.com" target="_blank">cubesmith.com</a>.</p>
+<p>Even the best cube will wear out. That is natural, just buy a new one. I have used up over 15 cubes over the years.</p>
+
+<h3>Dexterity</h3>
+<p>I don't know the best way to use hands and fingers, but I know what I do. My style is probably adapted to my method, where you spend a lot of time turning the same two adjacent sides.</p>
+<p>I'm right handed, but I use the left hand for turning, and the right hand for more or less just holding the cube. I don't know why. It took me several months before I realized I was doing this "left handed".</p>
+
+<h4>The grip</h4>
+<div class="cube-row">
+  <div class="cube-widget">
+    <div class="roofpig rp140" data-config="solved=UF- | colored= | tweaks=D:U* D:F* F:R B:L U:Ld | alg=F U F2 U2 | hover=5"></div>
+  </div>
+</div>
+<p>I have tried to illustrate my right hand grip in this cube. The red sticker is where I hold the thumb, orange (rotate to see better) for the index finger, and yellow is the middle finger. The white part is the two sides you can turn.</p>
+<p>Use a firm but not too tight grip.</p>
+
+<h4>Think in "columns"</h4>
+<div class="cube-row">
+  <div class="cube-widget">
+    <div class="roofpig rp140" data-config="solved=UF- | colored= | tweaks=B:UFL B:UL B:UBL X:Ful X:Bul | alg=F' U"></div>
+  </div>
+</div>
+<p>The sequence of two turns to the right can be done in one single movement by gripping the orange "column" by your left hand by the <strong>X</strong> marked stickers. The right hand holds a grip like above.</p>
+<p>Every sequence of two (often more) moves can be done with column moves, that halves the number of movements you need to make. It takes a while to get to see sequences as moving columns instead of separate turns, but it's very easy once you "get" it.</p>
+
+<h4>The Trigger</h4>
+<div class="cube-row">
+  <div class="cube-widget">
+    <div class="roofpig rp140" data-config="solved=UF- | colored= | tweaks=F:Uf U:Df B:Ful | alg=F U' F'"></div>
+  </div>
+</div>
+<p>To do this, hold with your left hand the thumb on the red spot and the middle finger on the yellow. The index finger should not be part of the grip, but should press gently on the orange sticker during the first turn.</p>
+<p>When it is about 3/4 complete, you can turn the top layer with the index finger. Do the second turn that way. Meanwhile, start gently turning back with the rest of the left hand, still holding the grip between red and yellow. When the second turn is 3/4 done, you will be able to do the third turn instantly.</p>
+<p>This can be done ridiculously fast, 0.1 seconds or so. But start practicing slower…</p>
+<p>You need a cube in good shape, or you will break it or get stuck.</p>
+
+<h3>Movies</h3>
+<p>Enough talk. Here is actual footage of how it's done. (The original page embedded these as QuickTime movies; they are linked here as files on lar5.com.)</p>
+<ul>
+  <li><a href="https://lar5.com/cube/fastsune.mov" target="_blank">Fast Sune</a> — This is Sune™ at top speed. Seven moves in 0.70 seconds. It's in 30 frames per second. In frame 9 more than one full turn is done! To see <strong>anything</strong> of what's going on you need to step through it. If that's too confusing, first look at the slow version.</li>
+  <li><a href="https://lar5.com/cube/slowsune.mov" target="_blank">Slow Sune</a> — This is the same Sune™ done slower to illustrate the finger tricks. The first three moves is a trigger, just as described above. The next two moves is also a trigger, but skipping the first move. And the final two moves are a simple column sequence.</li>
+</ul>
+</section>
+
+
+<!-- ══ MENTAL ════════════════════════════════════════════════════ -->
+<section class="page-section" id="mental">
+<h2 class="section-title">The Zen of the Cube — the Mental Side</h2>
+
+<p>Being able to solve Rubik's cube very fast is a near useless skill, that takes a lot of time to acquire, and does not typically impress the opposite sex. If you think you have better things to do, I can only agree. You probably have.</p>
+<p>Still, I think that learning to do <strong>something</strong> really well is important for anybody, and it's not too important what it is. If you have mastered one thing, it is a bit easier to master others. And doing something you're <strong>really</strong> good at is uplifting, relaxing and fun.</p>
+<p>So <strong>if</strong> you want to strive for perfection in some field, cubing is certainly cheaper than golf!</p>
+
+<h3>How to practice</h3>
+<p>Of course, you need to practice speed cubing a lot to get real fast. But you also need to spend a lot of time <strong>thinking</strong>. Trying to solve in as few moves as possible, while thinking carefully about each turn. Trying to find better solutions, even though there is an easy known solution that works.</p>
+<div class="info">You will not learn how to do something fast until you learned how to do it slow!</div>
+<p>The same goes for the physical dexterity tricks (see <a href="#physical">the physical side</a>). You need to practice seeing columns, finding trigger opportunities and other hand friendly techniques slowly before you can do it quickly.</p>
+
+<h3>Cube Nirvana</h3>
+<p>Strangely, for me, progress was a lot of quantum leaps. I would consistently solve the cube in about the same time, for example 80–90 seconds. Then suddenly one day I would achieve 67 seconds! And from then on I would perform in that for some weeks, until I suddenly did 52 seconds. In this manner I progressed from 3 minutes down to about 25 seconds in a series of leaps.</p>
+<p>Those leaps were quite unexpected, and I didn't <strong>feel</strong> any better, the times just suddenly got better. I checked that my clock wasn't broken several times!</p>
+<p>Another weird thing is that I do not think at all when cubing. I can talk freely about anything while doing world class speed. It seems like I just need to hook up my eyes and hands to some independent processor part of my brain, and it will just solve it before my eyes. It's a bit strange, but a pretty nice feeling!</p>
 </section>
 
 
@@ -1328,8 +2388,8 @@ ROOFPIG_CONF_Z  = "solved=U-| colors=F:b B:g U:r D:o R:w L:y";
     <div class="ref-item"><div class="ri-name">Benny™</div><div class="ri-alg">R' U2 R2 U2 R2 U' R2 U' R2 U R</div><div class="ri-step">Step 6+7 index — B9</div></div>
     <div class="ref-item"><div class="ri-name">Niklas™</div><div class="ri-alg">L U' R' U L' U' R U2</div><div class="ri-step">Step 5 — swap adjacent corners</div></div>
     <div class="ref-item"><div class="ri-name">Allan™</div><div class="ri-alg">F2 U' L+R' F2 L'+R U' F2</div><div class="ri-step">Step 7 — 3-edge cycle (8/12)</div></div>
-    <div class="ref-item"><div class="ri-name">Bert™</div><div class="ri-alg">FZ B2 D R2 FZ B2 L2 FZ B2 D' FZ B2</div><div class="ri-step">Step 7 — H-perm (2/12)</div></div>
-    <div class="ref-item"><div class="ri-name">Arne™</div><div class="ri-alg">R2 FZ B2 L2 D L2 B2 FZ R2</div><div class="ri-step">Step 7 — Z-perm (1/12)</div></div>
+    <div class="ref-item"><div class="ri-name">Bert™</div><div class="ri-alg">FZ B2 D R2 FZ B2 L2 FZ B2 D' FZ B2</div><div class="ri-step">Step 7 — Z-perm (2/12)</div></div>
+    <div class="ref-item"><div class="ri-name">Arne™</div><div class="ri-alg">R2 FZ B2 L2 D L2 B2 FZ R2</div><div class="ri-step">Step 7 — H-perm (1/12)</div></div>
     <div class="ref-item"><div class="ri-name">Buffy™ (By)</div><div class="ri-alg">L' UZ L U2 R U' L' U L+R'</div><div class="ri-step">Step 5+6 index</div></div>
     <div class="ref-item"><div class="ri-name">Eve™ (EE)</div><div class="ri-alg">F U2 B' U F' U' B F UZ F'</div><div class="ri-step">Step 5+6 index — diagonal</div></div>
     <div class="ref-item"><div class="ri-name">Clix™ (Cx)</div><div class="ri-alg">L' B' R B L B' R' B</div><div class="ri-step">Step 5+6 index</div></div>
